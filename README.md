@@ -81,8 +81,17 @@ Needs a JDK 25, Git, a NATS server, and Copilot CLI or Claude Code. The full wal
 cd intel-service
 gradlew.bat bootJar
 java -jar build\libs\intel-service-0.1.0-SNAPSHOT.jar          # 127.0.0.1:8080, fills itself from the feed
-claude mcp add --transport http intel http://127.0.0.1:8080/mcp   # the server must be named "intel"
+claude mcp add --transport http intel http://127.0.0.1:8080/mcp   # Claude Code; the server must be named "intel"
+copilot mcp add --transport http intel http://127.0.0.1:8080/mcp  # GitHub Copilot CLI; same name
 cd ..
+```
+
+What the MCP server does: it is a small read-only server that exposes one tool, `listVulnerabilities`. When the `security-audit` agent starts an audit it calls the tool (for
+example `product: "react"`, last 30 days) and gets back the recent vulnerability briefings from the feed (CVE ids, product, date, summary) plus how fresh the feed is. The agent uses them as
+leads to check the repository against, never as findings by themselves. It never changes anything. The agent must name the tool in its tool list (the kit does this for you for both Copilot, as
+`intel/listVulnerabilities`, and Claude Code, as `mcp__intel__listVulnerabilities`), and the MCP server must be registered under the name `intel`. Details, the token option and the tool's arguments: [intel-service/docs/connecting.md](intel-service/docs/connecting.md).
+
+```
 
 # 1. install the kit (agents, skills, tools) into the repository you want fixed
 cd kit

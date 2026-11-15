@@ -29,6 +29,21 @@ class SessionFoldersTest {
     }
 
     @Test
+    void aDataDirectoryWithAWindowsShortNameIsAccepted() {
+        // GitHub's Windows runners (and some user profiles) have 8.3 names such as C:\\Users\\RUNNER~1\\AppData\\Local\\Temp
+        SubscriberProperties props = new SubscriberProperties("C:/Users/RUNNER~1/AppData/Local/Temp/junit-1/data", List.of(root.toString()),
+                List.of(), SubscriberProperties.Runner.AUTO, 1,
+                new SubscriberProperties.Copilot("copilot", SubscriberProperties.PermissionMode.ALLOW_ALL_TOOLS),
+                new SubscriberProperties.Nats("nats://localhost:4222", null, null, null, null), new SubscriberProperties.Access(null));
+        assertThat(props.dataDir()).contains("RUNNER~1");
+        assertThatThrownBy(() -> new SubscriberProperties("C:/data;calc", List.of(root.toString()), List.of(),
+                SubscriberProperties.Runner.AUTO, 1,
+                new SubscriberProperties.Copilot("copilot", SubscriberProperties.PermissionMode.ALLOW_ALL_TOOLS),
+                new SubscriberProperties.Nats("nats://localhost:4222", null, null, null, null), new SubscriberProperties.Access(null)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void theFolderOfASessionIsUnderTheDataDirectoryAndOnlyForARealSessionId() {
         String id = UUID.randomUUID().toString();
         assertThat(folders().folder(id)).isEqualTo(root.resolve("data").resolve("sessions").resolve(id).toAbsolutePath().normalize());

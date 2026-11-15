@@ -38,7 +38,7 @@ public record SubscriberProperties(
         @DefaultValue("copilot") AgentTool agentTool,
         @DefaultValue Claude claude) {
 
-    private static final Pattern DATA_DIR = Pattern.compile("[A-Za-z0-9 ._:\\\\/-]+");
+    private static final Pattern DATA_DIR = Pattern.compile("[A-Za-z0-9 ._:~\\\\/-]+");
     private static final Pattern SUBJECT = Pattern.compile("[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*");
     private static final Pattern AGENT = Pattern.compile("[A-Za-z0-9_.:-]+");
     private static final Pattern LABEL = Pattern.compile("[A-Za-z0-9 _.-]{1,60}");
@@ -80,7 +80,7 @@ public record SubscriberProperties(
     public SubscriberProperties {
         if (dataDir == null || !DATA_DIR.matcher(dataDir).matches()) {
             throw new IllegalArgumentException("""
-                    subscriber.data-dir may only contain letters, digits, spaces and . _ : \\ / - \
+                    subscriber.data-dir may only contain letters, digits, spaces and . _ : ~ \\ / - \
                     (it is used in generated launch commands), but is: %s""".formatted(dataDir));
         }
         allowedRoots = allowedRoots == null ? List.of() : allowedRoots.stream().filter(r -> r != null && !r.isBlank())
