@@ -1,20 +1,15 @@
-Test totals, run 2026-11-15 on Windows 11.
+Test totals, run 2026-11-15 on Windows 11 with the one command every change must pass: java scripts/Verify.java --live (NATS_SERVER_EXE set, so the engine's live NATS tests ran).
 
-## engine: ./gradlew clean build -Pwindow-tests -Pnats-tests (real windows, real nats-server), sums of the XML results
-{"test_classes":45,"tests":410,"skipped":0,"failures":0,"errors":0}
+## the summary table that command printed (the engine step took 2 s because Gradle reused its up-to-date result of the build just before)
+Verification summary
+  kit: installer tests                     PASSED                       67s
+  kit: security-audit tool tests           PASSED                       94s
+  kit: security-audit validator tests      PASSED                       39s
+  kit: security-fixer tool tests           PASSED                       202s
+  engine: build and tests                  PASSED                       2s
+  intel-service: build and tests           PASSED                       87s
+  openspec: validate specs --strict        PASSED                       1s
+READY: every check passed or was skipped for a stated reason.
 
-## java tests/installer/InstallerTests.java
-
-66 passed, 0 failed
-
-## java tests/security-audit/ToolTests.java
-
-77 passed, 0 failed, 1 skipped
-
-## java tests/security-audit/ValidatorTests.java
-
-57 checks, 0 failed
-
-## java tests/security-fixer/ToolTests.java
-
-124 passed, 0 failed, 0 skipped
+## totals from the individual runs earlier the same day
+engine: {"tests":410,"failures":0,"errors":0} (clean build with -Pwindow-tests -Pnats-tests); installer 69 passed; security-audit tools 75 passed, 1 skipped; validators 57 checks; security-fixer tools 124 passed

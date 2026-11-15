@@ -44,9 +44,16 @@ Look at `openspec/changes/archive/` for finished examples: `2026-11-14-engine-cl
 - **An agent or skill for the kit:** `kit/.github/agents/<name>.agent.md` or `kit/.github/skills/<name>/SKILL.md`; the installer renders the Claude Code versions from them (`KitInstaller.mapTools` maps the tool names; an MCP tool is written `server/tool`). Add it to the tests that count agents and skills.
 - **A kit tool:** a single Java file in `kit/.github/appmod/tools/` and a test in `kit/tests/`.
 
+## Checks before you commit or push
+
+One command runs everything a change must not break: `java scripts/Verify.java` (see [AGENTS.md](AGENTS.md) for what each flag does). It runs the kit's four test programs, the engine's
+build and tests, the intel-service's build and tests, and `openspec validate --specs --strict`, prints a summary table, and exits non-zero if anything failed. Install the git hooks once with
+`git config core.hooksPath .githooks`: `pre-commit` runs `--quick` and `pre-push` runs everything. CI (`.github/workflows/ci.yml`) runs the same command on Linux and Windows for every push
+and pull request. The engine's live NATS tests need a `nats-server` and are opt-in (`--live`), so CI does not run them: run them yourself when you touch the NATS code.
+
 ## Pull requests
 
 1. Fork, branch, and keep the change to one OpenSpec change.
-2. All of: `engine` build, the four kit test programs, `intel-service` build (if touched), `openspec validate --specs --strict` and `openspec validate <your change> --strict`, green.
+2. `java scripts/Verify.java` reads `READY`, and `openspec validate <your change> --strict` is green.
 3. In the PR description: the change name, what you ran for real and what you did not, and any defect the real run found.
 4. Do not commit generated output (`build/`, `.gradle/`, `data/`, `.appmod/`).

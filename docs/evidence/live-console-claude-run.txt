@@ -1,0 +1,62 @@
+Live console session, Claude Code as the coding agent, Coverity-style CSV (hand-made, not a Coverity export). Recorded 2026-11-15; the text below is the engine console screen captured as it was shown. See also docs/media/demo-claude.mp4.
+
+## the result the orchestrator read from the engine read API afterwards
+session=ae07524a-e920-41e4-95e8-7e922e248806 state=DONE outcome=succeeded commits=5
+
+## publish: two refusals, then the real publish and the first sessions listing
+subject               coverity.issuefixesAgent -> security-fixer, repository C:/demo-c/shop
+subject               bdh.issuefixesAgent -> appmod-harness, repository from report
+$>publish C:\demo-c\reports\no-such-file.csv
+The report does not exist: C:\demo-c\reports\no-such-file.csv
+$>publish C:\demo-c\reports\coverity.csv --subject made.up.subject
+'made.up.subject' is not a subject this engine listens to. Configured: securityaudit.issuefixesAgent, coverity.issuefixe
+sAgent, bdh.issuefixesAgent.
+$>publish C:\demo-c\reports\coverity.csv --subject coverity.issuefixesAgent
+Published to coverity.issuefixesAgent: C:\demo-c\reports\coverity.csv
+$>sessions
+ID                                    STATE        FIXES  RECEIVED             SOURCE / REPOSITORY
+ae07524a-e920-41e4-95e8-7e922e248806  IN_PROGRESS  -      2026-11-15T09:54:17Z Coverity static-analysis / C:\demo-c\shop
+Showing 1 of 1 sessions, newest first.
+$>sessions
+ID                                    STATE        FIXES  RECEIVED             SOURCE / REPOSITORY
+ae07524a-e920-41e4-95e8-7e922e248806  IN_PROGRESS  -      2026-11-15T09:54:17Z Coverity static-analysis / C:\demo-c\shop
+Showing 1 of 1 sessions, newest first.
+$>sessions
+ID                                    STATE        FIXES  RECEIVED             SOURCE / REPOSITORY
+ae07524a-e920-41e4-95e8-7e922e248806  DONE         5      2026-11-15T09:54:17Z Coverity static-analysis / C:\demo-c\shop
+Showing 1 of 1 sessions, newest first.
+$>sessions
+ID                                    STATE        FIXES  RECEIVED             SOURCE / REPOSITORY
+ae07524a-e920-41e4-95e8-7e922e248806  DONE         5      2026-11-15T09:54:17Z Coverity static-analysis / C:\demo-c\shop
+Showing 1 of 1 sessions, newest first.
+$>session ae07524a-e920-41e4-95e8-7e922e24880
+
+## session, events and cleanup (a dry run), after the run
+outcome               succeeded
+reason                -
+worktree              shop-fix-ae07524a
+worktree folder       C:\demo-c\shop-fix-ae07524a
+branch                appmod/fix-ae07524a
+base commit           64d24a59efd96992777046dac7f679c5adf6ae59
+commits made          5
+To review:   git -C "C:\demo-c\shop" log 64d24a59efd96992777046dac7f679c5adf6ae59..appmod/fix-ae07524a
+             git -C "C:\demo-c\shop" diff 64d24a59efd96992777046dac7f679c5adf6ae59..appmod/fix-ae07524a
+             git -C "C:\demo-c\shop-fix-ae07524a" status --short   (anything listed is not committed; cleanup refuses wh
+ile there is any)
+To remove the folder:  cleanup ae07524a-e920-41e4-95e8-7e922e248806   (add --yes to do it; the branch and its commits st
+ay)
+To remove the branch:  git -C "C:\demo-c\shop" branch -D appmod/fix-ae07524a   (only after you have merged or no longer
+need the commits)
+$>events ae07524a-e920-41e4-95e8-7e922e248806
+2026-11-15T09:54:17.800195Z QUEUED       received
+2026-11-15T09:54:18.530624Z QUEUED       worktree created: shop-fix-ae07524a on appmod/fix-ae07524a from 64d24a5
+2026-11-15T09:54:18.530624Z QUEUED       report commit not used: the report names no commit in its first row; started fr
+om HEAD
+2026-11-15T09:54:18.570742Z IN_PROGRESS  headless started
+2026-11-15T09:55:54.915804Z DONE         succeeded
+2026-11-15T09:55:54.915804Z DONE         5 commits on appmod/fix-ae07524a
+$>cleanup ae07524a-e920-41e4-95e8-7e922e248806
+Would remove the worktree folder C:\demo-c\shop-fix-ae07524a. The branch appmod/fix-ae07524a is kept with its commits (5
+ commits). Anything the agent reported under .appmod/ in it goes too. Nothing was removed; run `cleanup ae07524a-e920-41
+e4-95e8-7e922e248806 --yes` to remove it.
+$>

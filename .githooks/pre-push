@@ -1,0 +1,3 @@
+#!/bin/sh
+# Everything before a push (engine and intel-service builds included). Install once with: git config core.hooksPath .githooks
+exec java scripts/Verify.java

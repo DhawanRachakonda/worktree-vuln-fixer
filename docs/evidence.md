@@ -23,6 +23,9 @@ A feature that has no proof is listed under "Not proven" at the end.
 | Copilot or Claude Code, one setting | `engine/docs/spec-coverage.md` ("Claude Code as the coding agent"); the Claude runs above and the Copilot runs above |
 | Kit installer (`--tool copilot|claude|both`, upgrade that keeps edited files), `appmod.cmd doctor` | `InstallerTests` (69); `appmod doctor` run on 2026-11-15 for both tools |
 | One runtime, JDK 25 | [`evidence/tests.txt`](evidence/tests.txt): engine 410 tests and the kit's four test programs, 0 failed |
+| The pre-commit and pre-push gate: `java scripts/Verify.java` | [`evidence/tests.txt`](evidence/tests.txt): the real summary table, READY. The first full run found a defect in the gate itself (it could not launch `gradlew.bat` on Windows); fixed and re-run. A deliberately broken check gives NOT READY and exit 1, and running it from the wrong folder gives exit 2. The hooks and the CI workflow are written but have not run on GitHub yet |
+| Live engine console with Claude Code: doctor, config, refusals, publish, sessions, session, events, cleanup | [`evidence/live-console-claude-run.txt`](evidence/live-console-claude-run.txt) (the console screen, captured as text): 5 commits, DONE, succeeded; [`media/demo-claude.mp4`](media/demo-claude.mp4) |
+| Demo videos | [`media/demo-claude.mp4`](media/demo-claude.mp4) (4 min 49 s) and [`media/demo-copilot.mp4`](media/demo-copilot.mp4) (4 min); what is live and what is a replay: [`media/README.md`](media/README.md) |
 
 ## Not proven
 
