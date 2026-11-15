@@ -1,0 +1,68 @@
+{
+  "source": "Coverity",
+  "sample": true,
+  "schemaVersion": 1,
+  "analysisDate": "2026-11-15",
+  "analysisMethod": "Invented sample for trying the source fix flow. It is not a Coverity scan or a native Coverity export, and it describes the made-up 'shop' Java project of the demos. Issue IDs are local fixture identifiers, not vendor CIDs.",
+  "projectPath": "C:/work/shop",
+  "description": "Two source findings of a small made-up Java project, for testing NATS-triggered remediation. Paths are relative to projectPath.",
+  "issues": [
+    {
+      "id": "LOCAL-COVERITY-001",
+      "title": "User name is concatenated into a SQL query",
+      "category": "SQL injection",
+      "cwe": "CWE-89",
+      "severity": "HIGH",
+      "confidence": 9,
+      "file": "src/shop/Db.java",
+      "lines": { "start": 17, "end": 18 },
+      "relatedLocations": [
+        { "file": "src/shop/Shop.java", "lines": { "start": 22, "end": 24 }, "role": "The name comes from the request and is passed to findUser" }
+      ],
+      "evidence": "Db.findUser builds the query text with the name argument and hands it to driver.query.",
+      "dataFlow": [
+        "A request supplies a user name.",
+        "Shop passes it to Db.findUser unchanged.",
+        "Db.findUser concatenates it into the SQL text."
+      ],
+      "impact": "A crafted name can change the query and read other rows.",
+      "preconditions": ["A caller can choose the name."],
+      "limitations": "Static finding; no exploit was run.",
+      "remediation": [
+        "Use a parameterized query or a prepared statement.",
+        "Keep the public method signature."
+      ],
+      "verification": [
+        "Add a test with a name that contains a quote and a SQL comment.",
+        "Run the project's tests."
+      ]
+    },
+    {
+      "id": "LOCAL-COVERITY-002",
+      "title": "Database password is compiled into the class",
+      "category": "Hard-coded credentials",
+      "cwe": "CWE-798",
+      "severity": "HIGH",
+      "confidence": 9,
+      "file": "src/shop/Db.java",
+      "lines": { "start": 7, "end": 9 },
+      "relatedLocations": [],
+      "evidence": "Db.connect passes a string literal as the password to the driver.",
+      "dataFlow": [
+        "The literal is part of the compiled class.",
+        "Db.connect hands it to the driver on every connection."
+      ],
+      "impact": "Anyone with the source or the compiled class knows the password; it also stays in the version history.",
+      "preconditions": ["The class or the source is readable by someone who should not know the password."],
+      "limitations": "The old password in the history must be rotated; a code change cannot remove it.",
+      "remediation": [
+        "Read the password from the environment (DB_PASSWORD) and fail clearly when it is missing.",
+        "Tell the owner to rotate the old password."
+      ],
+      "verification": [
+        "Add a test that sets and clears the variable.",
+        "Run the project's tests."
+      ]
+    }
+  ]
+}

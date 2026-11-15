@@ -1,0 +1,59 @@
+{
+  "type": "Coverity issues",
+  "formatVersion": 10,
+  "suppressedIssueCount": 0,
+  "issues": [
+    {
+      "mergeKey": "00000000000000000000000000000001",
+      "occurrenceCountForMK": 1,
+      "occurrenceNumberInMK": 1,
+      "checkerName": "SQLI",
+      "subcategory": "sql_injection",
+      "type": "SQL injection",
+      "domain": "STATIC_JAVA",
+      "language": "Java",
+      "mainEventFilePathname": "C:/work/shop/src/shop/Db.java",
+      "strippedMainEventFilePathname": "src/shop/Db.java",
+      "mainEventLineNumber": 17,
+      "functionDisplayName": "findUser",
+      "checkerProperties": {
+        "category": "SQL injection",
+        "impact": "High",
+        "cwe": 89,
+        "subcategoryShortDescription": "SQL injection",
+        "subcategoryLongDescription": "The argument name reaches driver.query concatenated into the SQL text."
+      },
+      "events": [
+        { "eventNumber": 1, "eventTag": "tainted_data", "filePathname": "C:/work/shop/src/shop/Shop.java", "lineNumber": 22, "eventDescription": "A request supplies a user name." },
+        { "eventNumber": 2, "eventTag": "sink", "filePathname": "C:/work/shop/src/shop/Db.java", "lineNumber": 17, "eventDescription": "The name is concatenated into the SQL text passed to driver.query." }
+      ]
+    },
+    {
+      "mergeKey": "00000000000000000000000000000002",
+      "occurrenceCountForMK": 1,
+      "occurrenceNumberInMK": 1,
+      "checkerName": "HARDCODED_CREDENTIALS",
+      "subcategory": "hardcoded_password",
+      "type": "Hard-coded credentials",
+      "domain": "STATIC_JAVA",
+      "language": "Java",
+      "mainEventFilePathname": "C:/work/shop/src/shop/Db.java",
+      "strippedMainEventFilePathname": "src/shop/Db.java",
+      "mainEventLineNumber": 7,
+      "functionDisplayName": "connect",
+      "checkerProperties": {
+        "category": "Hard-coded credentials",
+        "impact": "High",
+        "cwe": 798,
+        "subcategoryShortDescription": "Hard-coded password",
+        "subcategoryLongDescription": "A password literal is compiled into the class and handed to the driver."
+      },
+      "events": [
+        { "eventNumber": 1, "eventTag": "hardcoded_secret", "filePathname": "C:/work/shop/src/shop/Db.java", "lineNumber": 7, "eventDescription": "A string literal is used as the password." }
+      ]
+    }
+  ],
+  "desktopAnalysisSettings": null,
+  "error": null,
+  "warnings": []
+}

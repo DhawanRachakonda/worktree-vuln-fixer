@@ -1,0 +1,97 @@
+{
+  "source": "Black Duck Hub",
+  "sample": true,
+  "schemaVersion": 1,
+  "analysisDate": "2026-11-15",
+  "analysisMethod": "Invented sample for trying the dependency fix flow. It is not a Black Duck Hub scan or a native vendor export, and it describes the made-up 'orders' Maven project of the demos. Issue IDs are local fixture identifiers.",
+  "projectPath": "C:/work/orders",
+  "description": "Two dependency findings of a small made-up Maven project, for testing NATS-triggered remediation. The advisories are real public ones; the project is not.",
+  "issues": [
+    {
+      "id": "LOCAL-BDH-001",
+      "title": "Apache Log4j2 JNDI lookup remote code execution (Log4Shell)",
+      "severity": "CRITICAL",
+      "severitySource": "GitHub Security Advisory",
+      "confidence": 9,
+      "component": {
+        "name": "org.apache.logging.log4j:log4j-core",
+        "ecosystem": "maven",
+        "lockedVersion": "2.14.1",
+        "dependencyType": "direct",
+        "dependencyPath": ["org.apache.logging.log4j:log4j-core"],
+        "installedVersionVerified": true
+      },
+      "advisory": {
+        "ghsaId": "GHSA-jfh8-c2jp-5v3q",
+        "cveId": "CVE-2021-44228",
+        "url": "https://github.com/advisories/GHSA-jfh8-c2jp-5v3q",
+        "affectedRangeForLockedVersion": ">= 2.0-beta9, < 2.15.0",
+        "firstPatchedVersionForExactRange": "2.15.0",
+        "recommendedTargetVersion": "2.17.1",
+        "targetVersionEvidence": "The advisory lists later releases of the 2.x line as the complete fix; 2.17.1 is the recommended target."
+      },
+      "file": "pom.xml",
+      "lines": { "start": 24, "end": 28 },
+      "relatedLocations": [
+        { "file": "pom.xml", "lines": { "start": 19, "end": 23 }, "evidence": "log4j-api is pinned to the same version and must move with log4j-core." }
+      ],
+      "impact": "A crafted log message can make the logger load code from a remote server.",
+      "reachability": {
+        "status": "conditional",
+        "evidence": "OrderService logs a customer-supplied value with log4j.",
+        "preconditions": ["A customer can place a value in a logged field."],
+        "limitations": "Exploitability was not demonstrated; this is a dependency report."
+      },
+      "remediation": [
+        "Upgrade log4j-core and log4j-api together to the target version.",
+        "Build and run the tests."
+      ],
+      "verification": [
+        "Run the project's build and tests.",
+        "Recheck the resolved versions against the advisory."
+      ]
+    },
+    {
+      "id": "LOCAL-BDH-002",
+      "title": "Apache Commons Text variable interpolation can execute code (Text4Shell)",
+      "severity": "CRITICAL",
+      "severitySource": "GitHub Security Advisory",
+      "confidence": 9,
+      "component": {
+        "name": "org.apache.commons:commons-text",
+        "ecosystem": "maven",
+        "lockedVersion": "1.9",
+        "dependencyType": "direct",
+        "dependencyPath": ["org.apache.commons:commons-text"],
+        "installedVersionVerified": true
+      },
+      "advisory": {
+        "ghsaId": "GHSA-599f-7c49-w659",
+        "cveId": "CVE-2022-42889",
+        "url": "https://github.com/advisories/GHSA-599f-7c49-w659",
+        "affectedRangeForLockedVersion": ">= 1.5, < 1.10.0",
+        "firstPatchedVersionForExactRange": "1.10.0",
+        "recommendedTargetVersion": "1.10.0",
+        "targetVersionEvidence": "The advisory names 1.10.0 as the first patched version."
+      },
+      "file": "pom.xml",
+      "lines": { "start": 29, "end": 33 },
+      "relatedLocations": [],
+      "impact": "Interpolating untrusted text with the default string substitutor can run scripts or commands.",
+      "reachability": {
+        "status": "unknown",
+        "evidence": "The dependency is declared directly; whether untrusted text reaches the substitutor was not checked.",
+        "preconditions": ["Untrusted text is passed to StringSubstitutor.createInterpolator()."],
+        "limitations": "No source analysis was done for this finding."
+      },
+      "remediation": [
+        "Upgrade commons-text to the target version.",
+        "Build and run the tests."
+      ],
+      "verification": [
+        "Run the project's build and tests.",
+        "Recheck the resolved version against the advisory."
+      ]
+    }
+  ]
+}
