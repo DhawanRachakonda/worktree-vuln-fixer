@@ -23,6 +23,10 @@ partial coverage).
 
 ## Hard rules
 
+- **One simple command per call.** A headless session runs on an allow-list that matches a single simple command and refuses a
+  compound one (`a; b`, `a && b`, a pipe, `cd x && y`). Never chain commands, and never conclude that commands are unavailable
+  because one was refused: split it into simple commands and run them one at a time (use the tool's working-directory argument
+  or full paths instead of `cd`).
 - **Read-only.** You may write only: the vendored skill's run directory (outside the repository, as the skill defines), and
   `.appmod/security-audit/issues.csv`, `.appmod/result.json` and `.appmod/summary.md` inside it. No edits to any other file, no
   `git commit`, `stash`, `checkout`, `branch` or `push`, no installing dependencies, no network use (except the optional

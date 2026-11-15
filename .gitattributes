@@ -1,0 +1,9 @@
+# The engine renders launch scripts from templates and compares them with golden files, and bash refuses scripts with CRLF line endings,
+# so the checkout must have LF endings whatever core.autocrlf is set to (GitHub's Windows runners and many Windows installs set it to true).
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.mp4 binary
+*.png binary
+*.jar binary
+*.pdf binary
