@@ -71,8 +71,7 @@ public class Verify {
         System.out.println("== " + check.name());
         long start = System.nanoTime();
         try {
-            Process process = new ProcessBuilder(check.command()).directory(check.directory().toFile()).inheritIO().start();
-            int exit = process.waitFor();
+            int exit = exec(check.name(), check.command(), check.directory());
             return new Outcome(check.name(), exit == 0 ? "PASSED" : "FAILED (exit " + exit + ")", since(start));
         } catch (IOException e) {
             return new Outcome(check.name(), "FAILED (" + e.getMessage() + ")", since(start));
@@ -89,9 +88,7 @@ public class Verify {
         long start = System.nanoTime();
         boolean windows = System.getProperty("os.name").toLowerCase().contains("win");
         try {
-            Process process = new ProcessBuilder(windows ? List.of("cmd", "/c", "openspec", "validate", "--specs", "--strict") : List.of("openspec", "validate", "--specs", "--strict"))
-                    .directory(root.toFile()).inheritIO().start();
-            int exit = process.waitFor();
+            int exit = exec(name, windows ? List.of("cmd", "/c", "openspec", "validate", "--specs", "--strict") : List.of("openspec", "validate", "--specs", "--strict"), root);
             return new Outcome(name, exit == 0 ? "PASSED" : "FAILED (exit " + exit + ")", since(start));
         } catch (IOException e) {
             return new Outcome(name, "SKIPPED (openspec not installed)", since(start));
@@ -99,6 +96,31 @@ public class Verify {
             Thread.currentThread().interrupt();
             return new Outcome(name, "FAILED (interrupted)", since(start));
         }
+    }
+
+    /**
+     * Runs one check and returns its exit code. On GitHub Actions the output is captured, printed, and for a failing check its last lines are
+     * also written as an error annotation, because annotations can be read without signing in to GitHub and the job log cannot.
+     */
+    private static int exec(String name, List<String> command, Path directory) throws IOException, InterruptedException {
+        boolean ci = "true".equals(System.getenv("GITHUB_ACTIONS"));
+        ProcessBuilder builder = new ProcessBuilder(command).directory(directory.toFile());
+        if (!ci) {
+            return builder.inheritIO().start().waitFor();
+        }
+        Path log = Files.createTempFile("verify-", ".log");
+        int exit = builder.redirectErrorStream(true).redirectOutput(log.toFile()).start().waitFor();
+        List<String> lines = Files.readAllLines(log, java.nio.charset.StandardCharsets.UTF_8);
+        lines.forEach(System.out::println);
+        if (exit != 0) {
+            String tail = String.join("\n", lines.subList(Math.max(0, lines.size() - 40), lines.size()));
+            if (tail.length() > 3000) {
+                tail = tail.substring(tail.length() - 3000);
+            }
+            String escaped = tail.replace("%", "%25").replace("\r", "").replace("\n", "%0A");
+            System.out.println("::error title=%s failed (exit %d)::%s".formatted(name, exit, escaped));
+        }
+        return exit;
     }
 
     private static Duration since(long start) {
