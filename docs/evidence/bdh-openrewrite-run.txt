@@ -1,0 +1,46 @@
+Black Duck style report fixed by GitHub Copilot with OpenRewrite, two real runs on 2026-11-15
+Windows 11, Copilot CLI 1.0.109, plugin 1.24.0, SUBSCRIBER_PERMISSION_MODE=allow-list (the wrapper .\mvnw.cmd is on the allow-list)
+Fixture: a small hand-made Maven project (log4j-core/log4j-api 2.14.1, commons-text 1.9) and a hand-made report; not a vendor export.
+
+## Run 1: before the rules were written down (session e4c4250f)
+state=ERROR, 2 commits, no OpenRewrite attempt.
+- The agent wrote ./mvnw.cmd (forward slash) and unquoted -Drewrite.x=y arguments. Copilot's command parser could not read them
+  (hasParseErrors, allowMatchIdentifier null), so a headless allow-list refused them even with the wrapper allowed.
+- It edited pom.xml by hand ("fix:" commits) and ended without .appmod/result.json, so the engine recorded ERROR.
+
+## What changed after run 1
+- engine prompt (prompts/default.md): mechanical changes go through OpenRewrite first; one simple command per call;
+  write the wrapper as .\mvnw.cmd (backslash) and put every -D argument in double quotes; create report files with the file tool.
+- kit: security-audit and security-fixer agents, openrewrite-recipes skill and docs/openrewrite.md carry the same rules.
+
+## Run 2: with those rules (session 60aaa536, branch appmod/fix-60aaa536)
+state=DONE outcome=succeeded commits=2, about 9 minutes, 76 model turns.
+
+Commands the agent ran (from Copilot's own event log), all accepted by the allow-list:
+  PS .\mvnw.cmd -B org.openrewrite.maven:rewrite-maven-plugin:6.46.1:run "-Drewrite.activeRecipes=com.appmod.Log4jReportCveFix" "-Drewrite.configLocation=.appmod/rewrite-log4j.yml" "-Drewrite.exportDatatables=true"
+  PS .\mvnw.cmd -B verify
+  PS .\mvnw.cmd -B org.openrewrite.maven:rewrite-maven-plugin:6.46.1:run "-Drewrite.activeRecipes=com.appmod.CommonsTextReportCveFix" "-Drewrite.configLocation=.appmod/rewrite-commons-text.yml" "-Drewrite.exportDatatables=true"
+  PS .\mvnw.cmd -B verify
+
+Declarative recipes it wrote (.appmod/rewrite-log4j.yml, rewrite-commons-text.yml): org.openrewrite.maven.UpgradeDependencyVersion
+for log4j-core and log4j-api (2.17.1) and commons-text (1.10.0), overrideManagedVersion true.
+
+Commits:
+  b40a248 appmod(security): fix reported Log4j CVE        pom.xml | 4 ++--
+  fae1ae6 appmod(security): fix reported Commons Text CVE pom.xml | 2 +-
+Change in pom.xml: log4j-api 2.14.1 -> 2.17.1, log4j-core 2.14.1 -> 2.17.1, commons-text 1.9 -> 1.10.0.
+
+Report the agent wrote (.appmod/result.json): status succeeded, build passed (.\mvnw.cmd -B verify), tests 1 passed 0 failed,
+cvesFixed CVE-2021-44228 and CVE-2022-42889, and five further Log4j advisories from the plugin's final dependency-advisor scan
+listed under cvesRemaining and requiresHumanReview (outside the report's scope; CVE-2026-34479 concerns the 1-to-2 bridge, applicability to be reviewed).
+Its own assumptions say: the modernize orchestrator could not start because its workspace-mode pre-tool hook errored, so the
+OpenRewrite recipes were run directly; no hand edits were needed.
+
+Refusals: 13 permission requests were denied, all of them bookkeeping (compound git commands with ";", $(...) substitution,
+python -c, Set-Content into .appmod/base-commit). None of them blocked the job.
+
+## What this shows, and what it does not
+- Shows: with the wrapper allowed and the commands written as the rules say, the default Copilot job takes the OpenRewrite path and
+  the result is repeatable (recipe files are kept in .appmod).
+- Does not show: that the agent always does so (it is not deterministic: run 1 failed, run 2 passed, nothing in between was sampled),
+  a real Black Duck export, or the plugin's own orchestrator (its hook failed in this environment).

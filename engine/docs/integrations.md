@@ -102,6 +102,13 @@ allow-list, `bdh.issuefixesAgent` published from the console: session `DONE`, ou
 `.appmod/rewrite.yml`, ran the recipe, ran `./mvnw -B verify` (1 test passed) and committed `appmod(openrewrite): org.openrewrite.maven.UpgradeDependencyVersion` (12 turns, $0.10, 1 minute).
 This found that the kit pinned a plugin version that does not exist (`6.50.0`; the latest release on Maven Central is `6.46.1`); it is corrected.
 
+**OpenRewrite through Copilot on the allow-list (two real runs, `docs/evidence/bdh-openrewrite-run.txt`):** the first run did not use it and ended `ERROR`:
+the agent wrote `./mvnw.cmd` and unquoted `-Drewrite.x=y`, Copilot's parser could not read them (`hasParseErrors`, so no allow rule can match), they were refused, and
+the agent edited `pom.xml` by hand. The rules that fix this are now in the engine prompt and the kit: **write the wrapper as `.\mvnw.cmd` (backslash), put every `-D` argument in
+double quotes, one simple command per call, and make the report files with the file tool.** With them, the second run wrote two declarative recipes, ran
+`.\mvnw.cmd -B org.openrewrite.maven:rewrite-maven-plugin:6.46.1:run "-Drewrite.activeRecipes=..." "-Drewrite.configLocation=..."` for each, verified, committed twice and wrote a
+`succeeded` report. Allow-list entries that cover it: `shell(.\mvnw.cmd:*)`. One run each way: the agent is not deterministic, so check `.appmod/result.json` for `OpenRewrite` under `assumptions`.
+
 ## Migration: Java upgrade with GitHub Copilot app modernization
 
 A migration is not a report, so it is started in the agent directly (the engine's subjects are for findings):

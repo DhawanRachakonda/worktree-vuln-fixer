@@ -28,7 +28,9 @@ Detect the build tool, then run **from the repository root**:
 ```
 Unquoted, Copilot's command parser cannot read `-Drewrite.name=value`, reports the command as unparseable, and a headless allow-list then
 refuses it even though the Maven wrapper is allowed: in a real run the agent lost its OpenRewrite step this way and edited `pom.xml` by hand
-(`docs/evidence/bdh-run.txt` in the kit's repository). Do not chain commands with `;` or `&&` either; one command per call.
+(`docs/evidence/bdh-run.txt` in the kit's repository). Write the wrapper as `.\mvnw.cmd` with a backslash: a later real run showed the
+parser also cannot read `./mvnw.cmd` (reported as unparseable and never allow-listable), and `.\mvnw` without `.cmd` matches no `mvnw.cmd` rule.
+Do not chain commands with `;` or `&&` either; one command per call.
 
 **Gradle**:
 ```
