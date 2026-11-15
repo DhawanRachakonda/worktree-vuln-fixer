@@ -252,4 +252,20 @@ class SessionApiTest {
                 .doesNotContain("\n").doesNotContain("\u001b");
         mvc.perform(get("/api/sessions").param("state", "ERROR")).andExpect(jsonPath("$.items[0].reason", not(containsString("\u0000"))));
     }
+
+    @Test
+    void theSourceBranchLocalChangesAndPublishOutcomeAreInTheView() throws Exception {
+        sessions.setSource(ids.get(0), "release/1.2", "publish", true);
+        sessions.setPublishState(ids.get(0), "pushed");
+        sessions.setPullRequest(ids.get(0), "created", "https://host.example/pr/7");
+
+        mvc.perform(get("/api/sessions/" + ids.get(0)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sourceBranch").value("release/1.2"))
+                .andExpect(jsonPath("$.sourceChoice").value("publish"))
+                .andExpect(jsonPath("$.localChanges").value(true))
+                .andExpect(jsonPath("$.publishState").value("pushed"))
+                .andExpect(jsonPath("$.pullRequestState").value("created"))
+                .andExpect(jsonPath("$.pullRequestLink").value("https://host.example/pr/7"));
+    }
 }

@@ -78,3 +78,17 @@ Found and fixed by real runs of the same day: the kit's two dependency tools (`C
 (fails when the package line comes back, checked), and the appmod.cmd fix was run by hand with `doctor`.
 
 Not proven: macOS; the JDK floor for `CodeGraph`, `DependencyAdvisor`, `FindingsToCsv` and `IssueList` (they still run on older JDKs); `appmod init` end to end.
+
+## The git step of `appmod init` (change `source-branch-and-pull-request`)
+
+Scenarios of `specs/git-preflight` for the installer. Checks are in `tests/installer/GitStepTests.java` (`java tests/installer/GitStepTests.java` from the kit folder, 22 checks), run as a separate process into temporary git repositories with a local bare repository as `origin`. The same git checks also exist in the engine (`GitPreflight`); `GitPreflightParityTest` in the engine compares the two (a deliberate copy, see `AGENTS.md`).
+
+| Scenario | Proof |
+|---|---|
+| Interactive init | **Proven**, with an answers file standing in for the terminal (`-Dappmod.init.answers`): `interactiveChoiceIsSaved` (detected remote default and branch list shown, the choice saved to `.appmod/publish.json`, Enter accepts the default, the folder stays ignored by git). A person typing at a real terminal was not run. |
+| Non-interactive init | **Proven.** `withoutATerminalNothingIsSaved`: exit 0, kit installed, nothing saved, the branch that would be used is printed. |
+| Git problem at init | **Proven.** `remoteUnreachableStillInstalls`: exit 0, kit installed, the warning names what is lost, credentials in the URL are never printed. `badAnswersAndOtherFolders`: a branch that does not exist or is not a valid name is not saved, a folder that is not a repository skips the step, an unreadable saved file is reported, `--dry-run` writes nothing. |
+| `--upgrade` and re-runs keep the file | **Proven.** `upgradeKeepsTheSavedFile`. |
+| The agents say who pushes and how the base is chosen | **Proven.** `InstallerTests.agentsSayWhoPushesAndHowTheBaseIsChosen` (Copilot and Claude Code files). |
+
+Mutation-checked: not writing the setting makes 3 checks fail; changing a consequence text in the kit copy makes the engine's parity test fail.

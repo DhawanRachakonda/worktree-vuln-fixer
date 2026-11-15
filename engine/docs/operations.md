@@ -91,7 +91,7 @@ API returns the same five fields (`workName`, `workPath`, `workBranch`, `baseCom
 
 **Merging.** The commands above are only printed; the engine never runs them. To take the fixes, merge the branch yourself
 (`git merge appmod/fix-2f6c0a1e`, or cherry-pick single commits). When the base is an older audited commit and the code has moved on,
-git tells you about conflicts at that point, which is the right place to settle them. The engine never pushes.
+git tells you about conflicts at that point, which is the right place to settle them. By default the engine does not push either; to have the finished branch pushed (and a pull request opened by a command you choose) see [publishing.md](publishing.md).
 
 **Removing.** The engine never deletes a worktree on its own, and never a branch: they are your review material. When you are done,
 use the console command `cleanup <id>` (see the console table): without `--yes` it only says what it would remove; with `--yes` it
@@ -223,7 +223,8 @@ bootRun` cannot host the console**: Gradle starts the engine without a terminal,
 | `events <id>` | The states the session went through, oldest first. |
 | `config` | The settings in force. A secret shows only as set or not set. |
 | `doctor` | One line per check, pass or fail with the reason. |
-| `publish <report path> [--subject <subject>]` | Publishes the absolute path of a report file to NATS, on the first configured subject (the security-audit one) unless `--subject` names another configured subject. It uses the engine's own NATS URL and credentials, refuses a path that is not an existing file and a subject the engine does not listen to before it connects, and says when NATS cannot be reached. The engine then receives the message like any other and records a session. |
+| `publish <report path> [--subject <subject>] [--source-branch <branch>] [--unsafe-local-changes]` | Publishes the absolute path of a report file to NATS, on the first configured subject (the security-audit one) unless `--subject` names another configured one. `--source-branch` and `--unsafe-local-changes` (not both) are sent as the message headers `source-branch` and `unsafe-local-changes`; the console says which branch will be used before it publishes. See [publishing.md](publishing.md). |
+| `publish-branch <id> [--yes]` | Pushes the branch of a finished session (and runs the pull-request command in `pull-request` mode); needed for a session that included local changes, and to retry a failed push. Without `--yes` it only says what it would do. |
 | `reopen <id>` | Opens a window that resumes a finished session (see above). |
 | `cleanup <id> [--yes]` | Removes the worktree folder of a finished session after `--yes` (the branch is kept); without it only says what it would do (see Removing). |
 | `exit` | Leaves the console **and stops the engine**. |

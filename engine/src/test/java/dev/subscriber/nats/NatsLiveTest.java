@@ -29,7 +29,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Talks to a real NATS server. Opt-in: {@code ./gradlew test -Pnats-tests}. The server is either the one at {@code NATS_URL}, or, when
- * that is not set, one this test starts from {@code NATS_SERVER_EXE} on a free loopback port and stops afterwards (the same way the other
+ * that is not set, one {@link NatsTestServer} starts (a Docker container, or {@code NATS_SERVER_EXE}) on a free loopback port and stops afterwards (the same way the other
  * live tests do); with neither the test is skipped. It uses subject names with a random part, so it can never reach a real subscriber
  * listening on the real issue subjects.
  */
@@ -38,12 +38,12 @@ class NatsLiveTest {
     @TempDir
     Path root;
 
-    private Process server;
+    private NatsTestServer server;
 
     @AfterEach
     void stopServer() throws InterruptedException {
         if (server != null) {
-            server.destroyForcibly().waitFor();
+            server.close();
         }
     }
 
@@ -52,20 +52,8 @@ class NatsLiveTest {
         if (configured != null && !configured.isBlank()) {
             return configured;
         }
-        String exe = System.getenv("NATS_SERVER_EXE");
-        Assumptions.assumeTrue(exe != null && Files.isExecutable(Path.of(exe)), "set NATS_URL or NATS_SERVER_EXE to run against a real NATS server");
-        int port;
-        try (ServerSocket free = new ServerSocket(0)) {
-            port = free.getLocalPort();
-        }
-        server = new ProcessBuilder(exe, "-a", "127.0.0.1", "-p", String.valueOf(port)).redirectErrorStream(true)
-                .redirectOutput(root.resolve("server.log").toFile()).start();
-        await().atMost(Duration.ofSeconds(10)).ignoreExceptions().until(() -> {
-            try (Socket s = new Socket("127.0.0.1", port)) {
-                return s.isConnected();
-            }
-        });
-        return "nats://127.0.0.1:" + port;
+        server = NatsTestServer.start(root);
+        return "nats://127.0.0.1:" + server.port();
     }
 
     @Test
@@ -101,10 +89,10 @@ class NatsLiveTest {
                 publisher.flush(Duration.ofSeconds(5));
             }
 
-            verify(intake, timeout(10_000)).accept(audit, path);
-            verify(intake, timeout(10_000)).accept(other, "C:\\reports\\coverity.json");
+            verify(intake, timeout(10_000)).accept(audit, path, java.util.List.of(), java.util.List.of());
+            verify(intake, timeout(10_000)).accept(other, "C:\\reports\\coverity.json", java.util.List.of(), java.util.List.of());
             Thread.sleep(500);
-            verify(intake, never()).accept(org.mockito.ArgumentMatchers.eq(unconfigured), any());
+            verify(intake, never()).accept(org.mockito.ArgumentMatchers.eq(unconfigured), any(), any(), any());
         } finally {
             source.stop();
         }

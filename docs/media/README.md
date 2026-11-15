@@ -2,15 +2,19 @@
 
 | Video | Length | What it shows |
 |---|---|---|
-| [demo-claude.mp4](demo-claude.mp4) | 5 min 21 s | Overview and setup, then the **live engine console** with Claude Code fixing a Coverity-style report (doctor, config, two refusals, publish, sessions, session, events, cleanup), the recorded security-audit run, intel-service, the safety rules, the pre-push check |
-| [demo-copilot.mp4](demo-copilot.mp4) | 5 min 9 s | Setup for Copilot, then the **live engine console** with GitHub Copilot fixing a Black Duck style report through **OpenRewrite** (2 commits), the failed first run behind the quoting rules, a Java 17 to 21 upgrade, intel-service with Copilot, and the pre-push check |
+| [demo-source-branch.mp4](demo-source-branch.mp4) | 1 min 8 s | Choosing the base branch, local changes, and the opt-in push. `appmod init`'s git step (checks, detected default branch, branch list, the saved choice), then the **real engine jar driven by the real `nats` command-line client** with the headers `source-branch:release/1.0` (the branch is pushed, a pull-request link is recorded) and `unsafe-local-changes:true` (the session waits for confirmation, nothing is pushed), and a slide on what was real and what was not |
 
-Setup instructions (also named in both videos): [engine/docs/setup.md](../../engine/docs/setup.md). Proof for every claim: [docs/evidence.md](../evidence.md).
+Two earlier videos (a live engine console with Claude Code, and one with GitHub Copilot and OpenRewrite) were removed on 2026-11-15, because they showed `doctor`, `config` and `session` screens from before the source-branch and push features. The runs they were made from are still recorded as text in [docs/evidence](../evidence/). A new video of a live agent session would need new live Claude Code and Copilot sessions.
 
-## What is real in them, and what is not
+Setup instructions: [engine/docs/setup.md](../../engine/docs/setup.md). The features in the video: [engine/docs/publishing.md](../../engine/docs/publishing.md). Proof for every claim: [docs/evidence.md](../evidence.md).
 
-- **Real console, captured as text.** The engine console in both videos (the top pane) and the git worktree pane under it are the real screens of a real run on 2026-11-15, read from the console's own screen buffer several times a second and drawn offscreen; the typing in them was done by a script that typed into the real console. The long waits are sped up (6x for Claude Code, about 34x for the 9-minute Copilot run) and the caption says so. The same text is in [evidence/live-console-claude-run.txt](../evidence/live-console-claude-run.txt).
-- **Recorded runs, shown as replays.** The other terminal scenes show the text of the recorded runs in `docs/evidence/` (security audit, Black Duck, migration, OpenRewrite, intel-service, the verification summary). Their on-screen reveal speed is chosen for readability, so it is not the original timing.
+## What is real in it, and what is not
+
+- The text of its terminal scenes is the output of real runs on 2026-11-15, taken from [evidence/source-branch-real-engine-run.txt](../evidence/source-branch-real-engine-run.txt) and a real `appmod init` run; only the command lines are shortened (the report path is shown as `<report>`).
+- The engine ran with its console off (it needs a terminal), so the results are shown through its read API and the git remote, not through the console: `doctor`, `config`, `publish` and `publish-branch` are therefore not shown in the video (they are proven by the tests listed in [engine/docs/spec-coverage.md](../../engine/docs/spec-coverage.md)).
+- In the `appmod init` scene the answer `release/1.0` was read from a file, not typed.
+- The coding agent and the pull-request command were stand-ins (a program that commits one file, and one that prints a link). No hosted git service, `gh` or `glab` was used.
+- The reveal speed of the text is chosen for reading, not the original timing. The frames are drawn by [scripts/media/RenderFrames.java](../../scripts/media/RenderFrames.java) and encoded with FFmpeg in Docker (see `AGENTS.md`).
 - **Slides** are plain text slides that name what each part proves and its caveats.
-- **Not in the videos:** a real Black Duck or Coverity export (the reports are hand-made samples), Copilot with the audit on the newest fixture, macOS. They are listed in [docs/evidence.md](../evidence.md) under "Not proven".
-- The videos have no narration; every step is captioned.
+- **Not in the video:** a real Black Duck or Coverity export (the reports are hand-made samples), a hosted git service, macOS. They are listed in [docs/evidence.md](../evidence.md) under "Not proven".
+- The video has no narration; every step is captioned.

@@ -8,7 +8,23 @@ import java.util.List;
 public interface WorktreeProvisioner {
 
     /** The worktree that was created and what to tell the person about how its base commit was chosen. */
-    record Created(Worktree worktree, List<String> notes) {
+    record Created(Worktree worktree, List<String> notes, Source source) {
+
+        public Created(Worktree worktree, List<String> notes) {
+            this(worktree, notes, Source.UNKNOWN);
+        }
+    }
+
+    /** What the person asked for when publishing the report: a source branch, or the local changes of the checkout (not both). */
+    record SourceRequest(String branch, boolean localChanges) {
+
+        public static final SourceRequest NONE = new SourceRequest(null, false);
+    }
+
+    /** Where the worktree started: the branch (null when it is not a branch tip), which choice applied, and whether local changes were included. */
+    record Source(String branch, String choice, boolean localChanges) {
+
+        public static final Source UNKNOWN = new Source(null, null, false);
     }
 
     /** Why a worktree could not be created. The text is shown to the operator and stored as the session's reason. */
@@ -27,6 +43,11 @@ public interface WorktreeProvisioner {
      * @param report     the engine's copy of the report (a CSV may name the commit it audited); may be null
      */
     Created create(String sessionId, Path repository, Path report) throws WorktreeException;
+
+    /** As above, for a report published with a source branch or with the option to include local changes. */
+    default Created create(String sessionId, Path repository, Path report, SourceRequest request) throws WorktreeException {
+        return create(sessionId, repository, report);
+    }
 
     /** How many commits were made on the branch since the base commit; null when that cannot be told. */
     Integer commitCount(String workPath, String baseCommit, String branch);

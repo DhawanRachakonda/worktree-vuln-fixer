@@ -26,6 +26,11 @@ subscriber:
   agent-tool: ${SUBSCRIBER_AGENT_TOOL:copilot}
   claude:
     command: ${SUBSCRIBER_CLAUDE_COMMAND:claude}
+  # What the engine does with a finished session's branch: none (default, no contact with the remote), push, or pull-request (push, then run the command).
+  # A repository can override both in .appmod/publish.json.
+  publish:
+    mode: ${SUBSCRIBER_PUBLISH_MODE:none}
+    pull-request-command: ${SUBSCRIBER_PULL_REQUEST_COMMAND:}
   # The permission settings below apply to whichever tool runs; the neutral environment names win over the SUBSCRIBER_COPILOT_* ones.
   copilot:
     command: ${SUBSCRIBER_COPILOT_COMMAND:copilot}

@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,13 +104,23 @@ public class NatsMessageSource {
     }
 
     private void handle(Message message) {
-        handle(message.getSubject(), message.getData());
+        io.nats.client.impl.Headers headers = message.getHeaders();
+        handle(message.getSubject(), message.getData(), headers == null ? List.of() : orEmpty(headers.get("source-branch")),
+                headers == null ? List.of() : orEmpty(headers.get("unsafe-local-changes")));
+    }
+
+    private static List<String> orEmpty(List<String> values) {
+        return values == null ? List.of() : values;
     }
 
     void handle(String subject, byte[] data) {
+        handle(subject, data, List.of(), List.of());
+    }
+
+    void handle(String subject, byte[] data, List<String> sourceBranch, List<String> localChanges) {
         try {
             byte[] bounded = data == null ? new byte[0] : data.length > MAX_PAYLOAD_BYTES ? Arrays.copyOf(data, MAX_PAYLOAD_BYTES) : data;
-            intake.accept(subject, new String(bounded, StandardCharsets.UTF_8));
+            intake.accept(subject, new String(bounded, StandardCharsets.UTF_8), sourceBranch, localChanges);
         } catch (RuntimeException e) {
             // The message cannot be put back (core NATS has no acknowledgement); say so, and keep the connection serving the rest.
             log.error("A message on {} could not be recorded and is lost: {}", NatsLogging.printable(subject), e.toString());

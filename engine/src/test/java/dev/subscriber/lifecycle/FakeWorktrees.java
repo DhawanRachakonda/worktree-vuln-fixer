@@ -45,6 +45,17 @@ class FakeWorktrees implements WorktreeProvisioner {
                 notes.getOrDefault(sessionId, List.of()));
     }
 
+    /** What each session asked for, by session id. */
+    final Map<String, SourceRequest> requests = new ConcurrentHashMap<>();
+
+    @Override
+    public Created create(String sessionId, Path repository, Path report, SourceRequest request) throws WorktreeException {
+        Created created = create(sessionId, repository, report);
+        requests.put(sessionId, request);
+        return new Created(created.worktree(), created.notes(), new Source(request.branch(),
+                request.branch() == null ? "default-branch" : "publish", request.localChanges()));
+    }
+
     /** Worktrees removed, by folder; and a reason that makes every removal refuse when set. */
     public final List<String> removed = new CopyOnWriteArrayList<>();
     public volatile String refuseRemoval;

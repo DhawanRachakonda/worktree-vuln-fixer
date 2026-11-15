@@ -136,6 +136,30 @@ class SessionDispatcherTest {
     }
 
     @Test
+    void twoBranchesOfOneRepositoryStillRunOneAfterTheOtherAndEachGetsItsRequest() throws Exception {
+        startWithWorktrees(2, SubscriberProperties.Isolation.WORKTREE, audit(SubscriberProperties.Isolation.WORKTREE));
+        Path repo = Files.createDirectories(root.resolve("repo-a"));
+        String a = UUID.randomUUID().toString();
+        String b = UUID.randomUUID().toString();
+        sessions.insert(new NewSession(a, SessionState.QUEUED, "securityaudit.issuefixesAgent", "Security audit", "report-same", repo.toString(),
+                "security-fixer", "copilot", Instant.now(), null, "develop"));
+        sessions.insert(new NewSession(b, SessionState.QUEUED, "securityaudit.issuefixesAgent", "Security audit", "report-same", repo.toString(),
+                "security-fixer", "copilot", Instant.now(), null, "main"));
+        dispatcher.kick();
+
+        await().atMost(WAIT).untilAsserted(() -> assertThat(launcher.launched).containsExactly(a));
+        assertThat(state(b)).as("room for a second session, but the same repository").isEqualTo(SessionState.QUEUED);
+        assertThat(sessions.find(a).orElseThrow().sourceBranch()).isEqualTo("develop");
+        assertThat(sessions.find(a).orElseThrow().sourceChoice()).isEqualTo("publish");
+
+        endDoneInWorktree(a);
+        await().atMost(WAIT).untilAsserted(() -> assertThat(launcher.launched).containsExactly(a, b));
+        assertThat(sessions.find(b).orElseThrow().sourceBranch()).isEqualTo("main");
+        assertThat(worktrees.requests.get(a).branch()).isEqualTo("develop");
+        assertThat(worktrees.requests.get(b).branch()).isEqualTo("main");
+    }
+
+    @Test
     void eachSessionIsStartedWithItsOwnRecordedAgentAndRepository() throws Exception {
         start(2, SubscriberProperties.Runner.HEADLESS);
         String a = queue("repo-a", "security-fixer");

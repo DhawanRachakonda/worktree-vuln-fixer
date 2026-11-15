@@ -48,6 +48,7 @@ public final class InstallerTests {
             skillsRulesAndMemory();
             existingMemoryFile();
             bothTools();
+            agentsSayWhoPushesAndHowTheBaseIsChosen();
             secondRun();
             editedFile();
             dryRun();
@@ -224,6 +225,28 @@ public final class InstallerTests {
                 && Files.isRegularFile(target.resolve("CLAUDE.md")));
         check("both: the Copilot agent file is still the source's", sameBytes(kit.resolve(".github/agents/security-fixer.agent.md"),
                 target.resolve(".github/agents/security-fixer.agent.md")));
+    }
+
+    /** The agent keeps "never push", and both tools' files say who may push and how the base is chosen when no engine is involved. */
+    static void agentsSayWhoPushesAndHowTheBaseIsChosen() throws Exception {
+        Path target = fresh("who-pushes");
+        install(kit, "--target", target.toString(), "--tool", "both");
+        String copilot = Files.readString(target.resolve(".github/agents/security-fixer.agent.md"));
+        String claude = Files.readString(target.resolve(".claude/agents/security-fixer.md"));
+        String direct = "How the base is chosen when you are run directly (no engine)";
+        String engineMayPush = "The engine that started you may push your branch after you have finished";
+
+        check("agents: security-fixer keeps the rule to never push (Copilot and Claude Code)", copilot.contains("**Never push**") && claude.contains("**Never push**"));
+        check("agents: security-fixer says the engine may push afterwards, in both tools", copilot.contains(engineMayPush) && claude.contains(engineMayPush));
+        check("agents: security-fixer says how the base is chosen in the direct flow and that the person pushes, in both tools",
+                copilot.contains(direct) && claude.contains(direct) && copilot.contains("the person pushes the branch") && claude.contains("the person pushes the branch"));
+        String harness = Files.readString(target.resolve(".github/agents/appmod-harness.agent.md"));
+        check("agents: appmod-harness keeps never push and says the same about the base", harness.contains("Never push.")
+                && harness.contains("An engine that started the session may push the branch afterwards")
+                && harness.contains("the person pushes"));
+        String instructions = Files.readString(target.resolve(".github/instructions/appmod-harness.instructions.md"));
+        check("agents: the harness instructions keep the rule and add the engine sentence", instructions.contains("**Never push, open PRs")
+                && instructions.contains("An engine that started the session may push the branch afterwards"));
     }
 
     static void secondRun() throws Exception {

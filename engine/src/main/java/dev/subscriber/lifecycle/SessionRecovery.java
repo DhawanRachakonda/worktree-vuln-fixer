@@ -84,6 +84,7 @@ public class SessionRecovery {
         if (ExitRecord.read(folder).isPresent()) {
             log.info("Session {} ended while the engine was down; finalizing it from its exit record", session.id());
             lifecycle.finish(session.id());
+            lifecycle.publishIfAsked(session.id());
             return;
         }
         ProcessToken token = new ProcessToken(session.pid() == null ? -1 : session.pid(), session.pidStartedAt());

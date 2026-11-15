@@ -203,4 +203,66 @@ class DoctorTest {
         assertThat(checks).filteredOn(c -> c.name().equals("claude command")).singleElement().satisfies(c -> assertThat(c.passed()).isTrue());
         assertThat(checks).extracting(Doctor.Check::name).doesNotContain("copilot command");
     }
+
+    private static String git(Path folder, String... args) throws Exception {
+        java.util.List<String> command = new java.util.ArrayList<>(List.of("git", "-C", folder.toString(), "-c", "user.email=t@example.com",
+                "-c", "user.name=t", "-c", "commit.gpgsign=false"));
+        command.addAll(List.of(args));
+        Process p = new ProcessBuilder(command).redirectErrorStream(true).start();
+        String out = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(p.waitFor(60, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+        assertThat(p.exitValue()).as("git %s: %s", String.join(" ", args), out).isZero();
+        return out.strip();
+    }
+
+    private Path repository(String name, boolean withRemote) throws Exception {
+        Path repo = Files.createDirectories(root.resolve(name));
+        git(repo, "init", "-q", "-b", "main");
+        Files.writeString(repo.resolve("a.txt"), "one\n");
+        git(repo, "add", "a.txt");
+        git(repo, "commit", "-q", "-m", "first");
+        if (withRemote) {
+            Path bare = root.resolve(name + "-origin.git");
+            git(root, "init", "-q", "--bare", bare.toString());
+            git(repo, "remote", "add", "origin", bare.toString());
+            git(repo, "push", "-q", "origin", "main");
+        }
+        return repo;
+    }
+
+    @Test
+    void twoRepositoriesGetOneGitBlockEachAndTheOneWithoutARemoteFailsWithoutHidingTheOther() throws Exception {
+        Path withRemote = repository("shop", true);
+        Path withoutRemote = repository("blog", false);
+        SubscriberProperties props = new SubscriberProperties(data.toString(), List.of(root.toString()),
+                List.of(new Subject("securityaudit.issuefixesAgent", "Security audit", "appmod-harness", withRemote.toString(), null),
+                        new Subject("coverity.issuefixesAgent", "Coverity", "appmod-harness", withoutRemote.toString(), null)),
+                SubscriberProperties.Runner.HEADLESS, 1, new SubscriberProperties.Copilot("copilot", SubscriberProperties.PermissionMode.ASK), nats(),
+                new SubscriberProperties.Access(null), SubscriberProperties.Isolation.WORKTREE, SubscriberProperties.AgentTool.COPILOT,
+                new SubscriberProperties.Claude("claude"), new SubscriberProperties.Publish(SubscriberProperties.PublishMode.PUSH, null));
+        Doctor doctor = new Doctor(props, () -> true, () -> Connection.Status.CONNECTED, new CommandFinder(bin.toString(), true, ".EXE"), true,
+                new dev.subscriber.worktree.GitPreflight(props));
+
+        List<Doctor.Check> checks = doctor.run();
+
+        assertThat(checks).filteredOn(c -> c.name().equals("git shop") || c.name().equals("git blog")).hasSize(2);
+        assertThat(checks).filteredOn(c -> c.name().equals("git shop")).allMatch(Doctor.Check::passed);
+        assertThat(checks).filteredOn(c -> c.name().equals("git blog")).noneMatch(Doctor.Check::passed);
+        assertThat(checks).filteredOn(c -> c.name().equals("  remote origin")).extracting(Doctor.Check::passed).containsExactly(true, false);
+        assertThat(checks).filteredOn(c -> c.name().equals("database") || c.name().equals("nats")).allMatch(Doctor.Check::passed);
+        assertThat(doctor.report()).contains("no remote named origin").contains("2 of 18 checks failed");
+    }
+
+    @Test
+    void aSubjectWithoutAFixedRepositoryOrWithoutWorktreesAddsNoGitBlock() throws Exception {
+        Path repo = repository("shop", true);
+        SubscriberProperties props = new SubscriberProperties(data.toString(), List.of(root.toString()),
+                List.of(new Subject("securityaudit.issuefixesAgent", "Security audit", "appmod-harness", null, "issues.csv"),
+                        new Subject("coverity.issuefixesAgent", "Coverity", "appmod-harness", repo.toString(), null, SubscriberProperties.Isolation.NONE)),
+                SubscriberProperties.Runner.HEADLESS, 1, new SubscriberProperties.Copilot("copilot", SubscriberProperties.PermissionMode.ASK), nats(),
+                new SubscriberProperties.Access(null));
+        Doctor doctor = new Doctor(props, () -> true, () -> Connection.Status.CONNECTED, new CommandFinder(bin.toString(), true, ".EXE"), true,
+                new dev.subscriber.worktree.GitPreflight(props));
+        assertThat(doctor.run()).extracting(Doctor.Check::name).noneMatch(n -> n.startsWith("git") || n.startsWith("  "));
+    }
 }

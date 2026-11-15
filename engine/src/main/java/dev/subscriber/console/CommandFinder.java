@@ -9,19 +9,19 @@ import java.util.List;
 import java.util.Optional;
 
 /** Finds a command on the PATH the way the shell that will run it would: on Windows also with each executable extension. */
-final class CommandFinder {
+public final class CommandFinder {
 
     private final String path;
     private final boolean windows;
     private final String pathExt;
 
-    CommandFinder(String path, boolean windows, String pathExt) {
+    public CommandFinder(String path, boolean windows, String pathExt) {
         this.path = path == null ? "" : path;
         this.windows = windows;
         this.pathExt = pathExt == null || pathExt.isBlank() ? ".COM;.EXE;.BAT;.CMD" : pathExt;
     }
 
-    Optional<Path> find(String command) {
+    public Optional<Path> find(String command) {
         for (String directory : path.split(File.pathSeparator)) {
             if (directory.isBlank()) {
                 continue;

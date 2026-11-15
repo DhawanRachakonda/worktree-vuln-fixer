@@ -98,7 +98,7 @@ the audit subject.
   the code that they are real.
 - **It works in a git worktree**, not in your checkout: the subscriber-engine makes one for each session; started by hand in a
   checkout, the agent makes its own (`<repository>-fix-<id8>` on the branch `appmod/fix-<id8>`) and tells you where. Ask it to "work in place" only if you
-  want your checkout changed. It never pushes; review with `git log` and `git diff` on the branch and merge it yourself. Remove the worktree with
+  want your checkout changed. The agent never pushes (when an engine started the session it may push the branch afterwards if its operator turned that on, see [engine/docs/publishing.md](../engine/docs/publishing.md); a session you start by hand is pushed by you). Its base is the audited commit, else `HEAD`, or a branch you name; review with `git log` and `git diff` on the branch and merge it yourself. Remove the worktree with
   `git worktree remove --force <folder>` and `git branch -D <branch>` when you are done (look at `git status --short` in it first: `--force` drops anything
   uncommitted, and the agent's own `.appmod/` files are untracked).
 - Interactive, it asks before changing a public contract, adding a dependency, touching the test setup or choosing between fixes

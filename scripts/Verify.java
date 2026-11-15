@@ -10,7 +10,7 @@ import java.util.List;
  *
  * <p>No arguments runs everything. {@code --quick} runs only the fast checks (the installer tests and the OpenSpec validation, about a minute),
  * which is what the pre-commit hook uses; the pre-push hook and the CI workflow run all of them. {@code --live} adds the engine's
- * opt-in tests that start a real {@code nats-server} (set {@code NATS_SERVER_EXE}). Exit code 0 means every check passed or was skipped
+ * opt-in tests that start a real NATS server in a Docker container (or the program named by {@code NATS_SERVER_EXE}, when that is set). Exit code 0 means every check passed or was skipped
  * with a reason; anything else means something failed and the change is not ready.
  */
 public class Verify {
@@ -18,6 +18,17 @@ public class Verify {
     record Check(String name, Path directory, List<String> command, boolean slow) {}
 
     record Outcome(String name, String result, Duration took) {}
+
+    /** True when a Docker daemon answers, which is all the live tests need to start their NATS server. */
+    static boolean dockerAnswers() {
+        try {
+            Process p = new ProcessBuilder("docker", "info", "--format", "{{.ServerVersion}}").redirectErrorStream(true).start();
+            p.getInputStream().readAllBytes();
+            return p.waitFor(30, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0;
+        } catch (java.io.IOException | InterruptedException _) {
+            return false;
+        }
+    }
 
     public static void main(String[] args) throws Exception {
         boolean quick = List.of(args).contains("--quick");
@@ -32,8 +43,8 @@ public class Verify {
         String gradlew = root.resolve("engine").resolve(wrapperName).toString();
         List<String> engineBuild = new ArrayList<>(List.of(gradlew, "build", "--console=plain"));
         if (live) {
-            if (System.getenv("NATS_SERVER_EXE") == null) {
-                System.err.println("--live needs NATS_SERVER_EXE to point at a nats-server program.");
+            if (System.getenv("NATS_SERVER_EXE") == null && !dockerAnswers()) {
+                System.err.println("--live needs a running Docker daemon (the live tests start a NATS server in a container) or NATS_SERVER_EXE pointing at a nats-server program.");
                 System.exit(2);
             }
             engineBuild.add("-Pnats-tests");
@@ -41,6 +52,7 @@ public class Verify {
 
         List<Check> checks = List.of(
                 new Check("kit: installer tests", root.resolve("kit"), List.of("java", "tests/installer/InstallerTests.java"), false),
+                new Check("kit: git step of appmod init tests", root.resolve("kit"), List.of("java", "tests/installer/GitStepTests.java"), false),
                 new Check("kit: security-audit tool tests", root.resolve("kit"), List.of("java", "tests/security-audit/ToolTests.java"), true),
                 new Check("kit: security-audit validator tests", root.resolve("kit"), List.of("java", "tests/security-audit/ValidatorTests.java"), true),
                 new Check("kit: security-fixer tool tests", root.resolve("kit"), List.of("java", "tests/security-fixer/ToolTests.java"), true),

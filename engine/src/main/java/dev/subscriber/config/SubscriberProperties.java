@@ -23,6 +23,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param maxParallel  sessions that may run at once (never two in one repository)
  * @param agentTool    the coding agent that runs a session: the GitHub Copilot CLI or Claude Code
  * @param claude       how Claude Code is started (used when the tool is claude)
+ * @param publish      whether the engine pushes a finished session's branch and opens a pull request (the default for every repository)
  */
 @ConfigurationProperties("subscriber")
 public record SubscriberProperties(
@@ -36,7 +37,8 @@ public record SubscriberProperties(
         @DefaultValue Access access,
         @DefaultValue("worktree") Isolation isolation,
         @DefaultValue("copilot") AgentTool agentTool,
-        @DefaultValue Claude claude) {
+        @DefaultValue Claude claude,
+        @DefaultValue Publish publish) {
 
     private static final Pattern DATA_DIR = Pattern.compile("[A-Za-z0-9 ._:~\\\\/-]+");
     private static final Pattern SUBJECT = Pattern.compile("[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*");
@@ -63,6 +65,12 @@ public record SubscriberProperties(
 
     /** Where a fix session works: in its own git worktree, or in the repository's own checkout. */
     public enum Isolation { WORKTREE, NONE }
+
+    /** Settings that do not say how to publish: the engine pushes nothing (mode none). */
+    public SubscriberProperties(String dataDir, List<String> allowedRoots, List<Subject> subjects, Runner runner, int maxParallel,
+            Copilot copilot, Nats nats, Access access, Isolation isolation, AgentTool agentTool, Claude claude) {
+        this(dataDir, allowedRoots, subjects, runner, maxParallel, copilot, nats, access, isolation, agentTool, claude, new Publish(null, null));
+    }
 
     /** Settings without isolation: sessions work in the repository's own checkout (what the engine did before worktrees). */
     public SubscriberProperties(String dataDir, List<String> allowedRoots, List<Subject> subjects, Runner runner, int maxParallel,
@@ -99,6 +107,7 @@ public record SubscriberProperties(
         isolation = isolation == null ? Isolation.WORKTREE : isolation;
         agentTool = agentTool == null ? AgentTool.COPILOT : agentTool;
         claude = claude == null ? new Claude("claude") : claude;
+        publish = publish == null ? new Publish(null, null) : publish;
         // A subject that does not say takes the general setting, so every subject has its own answer from here on.
         Isolation general = isolation;
         subjects = subjects == null ? List.of() : subjects.stream()
@@ -165,6 +174,33 @@ public record SubscriberProperties(
                             .formatted(subject, reportLocation));
                 }
                 reportLocation = normalized;
+            }
+        }
+    }
+
+    /** What the engine does with a finished session's branch. */
+    public enum PublishMode { NONE, PUSH, PULL_REQUEST }
+
+    /**
+     * Publishing defaults, which a repository's own setting overrides.
+     *
+     * @param mode               none (the default), push, or pull-request
+     * @param pullRequestCommand the command template run after the push in pull-request mode, for example {@code gh pr create}
+     *                           with placeholders; split into arguments by the engine, never run through a shell
+     */
+    public record Publish(@DefaultValue("none") PublishMode mode, String pullRequestCommand) {
+
+        @ConstructorBinding
+        public Publish {
+            mode = mode == null ? PublishMode.NONE : mode;
+            pullRequestCommand = blankToNull(pullRequestCommand);
+            if (pullRequestCommand != null && (pullRequestCommand.length() > 500 || pullRequestCommand.chars().anyMatch(c -> c < 32))) {
+                throw new IllegalArgumentException("""
+                        subscriber.publish.pull-request-command must be one line of at most 500 characters""");
+            }
+            if (mode == PublishMode.PULL_REQUEST && pullRequestCommand == null) {
+                throw new IllegalArgumentException("""
+                        subscriber.publish.pull-request-command is required when subscriber.publish.mode is pull-request: name \n                        the command that opens the pull request, for example gh pr create --base {base} --head {head} \n                        --title {title} --body-file {bodyFile}""");
             }
         }
     }

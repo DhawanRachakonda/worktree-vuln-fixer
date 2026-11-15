@@ -28,9 +28,12 @@ public class ConsoleCommands {
     private final ReopenService reopenService;
     private final CleanupService cleanupService;
     private final ReportPublisher publisher;
+    private final dev.subscriber.worktree.BranchPublisher branchPublisher;
 
     public ConsoleCommands(FixSessionRepository sessions, SubscriberProperties properties, Environment environment, Doctor doctor,
-            ReopenService reopenService, CleanupService cleanupService, ReportPublisher publisher) {
+            ReopenService reopenService, CleanupService cleanupService, ReportPublisher publisher,
+            dev.subscriber.worktree.BranchPublisher branchPublisher) {
+        this.branchPublisher = branchPublisher;
         this.sessions = sessions;
         this.properties = properties;
         this.environment = environment;
@@ -49,14 +52,16 @@ public class ConsoleCommands {
             out.println("Unknown state '%s'. Use one of %s.".formatted(Text.printable(state, 40), Arrays.toString(SessionState.values())));
             return;
         }
-        out.println(ConsoleReports.sessions(sessions.list(filter, LIST_LIMIT, 0), sessions.count(filter), filter));
+        out.println(ConsoleReports.sessions(sessions.list(filter, LIST_LIMIT, 0), sessions.count(filter), filter,
+                s -> s.state() == SessionState.QUEUED ? sessions.blockerOf(s).map(FixSession::id).orElse(null) : null));
     }
 
     @Command(name = "session", description = "Show one session")
     public void session(CommandContext context, @Argument(index = 0, description = "The session id") String id) {
         PrintWriter out = context.outputWriter();
         FixSession found = find(id);
-        out.println(found == null ? notFound(id) : ConsoleReports.session(found));
+        out.println(found == null ? notFound(id) : ConsoleReports.session(found,
+                found.state() == SessionState.QUEUED ? sessions.blockerOf(found).orElse(null) : null));
     }
 
     @Command(name = "events", description = "Show the states a session went through")
@@ -89,8 +94,29 @@ public class ConsoleCommands {
 
     @Command(name = "publish", description = "Publish a report to NATS so the engine records a session for it (first configured subject unless --subject is given)")
     public void publish(CommandContext context, @Argument(index = 0, description = "The path of the report file") String report,
-            @Option(longName = "subject", description = "The subject to publish on") String subject) {
-        context.outputWriter().println(publisher.publish(subject, report).message());
+            @Option(longName = "subject", description = "The subject to publish on") String subject,
+            @Option(longName = "source-branch", description = "The branch the fixes are based on (default: the saved one, else the repository's default branch)") String sourceBranch,
+            @Option(longName = "unsafe-local-changes", description = "Base the session on the checkout's uncommitted and untracked changes (cannot be combined with --source-branch)", defaultValue = "false") boolean localChanges) {
+        context.outputWriter().println(publisher.publish(subject, report, sourceBranch, localChanges).message());
+    }
+
+    @Command(name = "publish-branch", description = "Push the branch of a finished session (and run the pull-request command in pull-request mode); needed for a session that included local changes. Without --yes only says what it would do")
+    public void publishBranch(CommandContext context, @Argument(index = 0, description = "The session id") String id,
+            @Option(longName = "yes", description = "Really push", defaultValue = "false") boolean yes) {
+        PrintWriter out = context.outputWriter();
+        FixSession found = find(id);
+        String refusal = branchPublisher.refusal(found);
+        if (found == null || refusal != null) {
+            out.println(found == null ? notFound(id) : "Nothing was pushed: " + refusal + ".");
+            return;
+        }
+        if (!yes) {
+            out.println("Would push the branch %s of session %s to origin%s. Run again with --yes to do it.".formatted(
+                    Text.printable(found.workBranch()), found.id(), found.localChanges()
+                            ? " (it holds a snapshot of uncommitted local work, possibly including untracked files: look at it first)" : ""));
+            return;
+        }
+        out.println(branchPublisher.confirmed(found).message());
     }
 
     private FixSession find(String id) {

@@ -199,6 +199,10 @@ public class KitInstaller {
             }
         }
         report.forEach(System.out::println);
+        if (target != null && !dryRun) {
+            // Git readiness, the detected default branch and, in a terminal, the choice of source branch. Never fails the install.
+            GitSetup.init(target, upgrade ? null : GitSetup.answerSource(), upgrade, System.out::println);
+        }
         System.out.println(dryRun ? "(dry run - nothing written)"
                 : "Kit files done. Tools and the app modernization plugin are installed by: appmod init <working-directory>");
     }

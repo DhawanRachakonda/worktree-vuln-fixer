@@ -76,12 +76,15 @@ worktree on its own branch, makes one tested commit per issue and never pushes. 
 when it returns a question, ask it with the options it gave and delegate again with the answer. Present its result: the worktree
 folder and branch, the commits, the issues fixed and the issues left with the reasons. It hands its final build and test to
 `appmod-verifier` itself, so do not run the verifier again for that job.
+When no engine started the session, the base is the audited commit, else `HEAD` of the checkout (or a branch the person names), and the person pushes
+the branch after reviewing it; say which base was used.
 
 ## 4. Finish
 
 1. Delegate to `appmod-verifier` after any code change.
 2. Make sure `.appmod/result.json` and `.appmod/summary.md` exist (`harness-reporting` skill).
 3. Tell the user: what changed (commits), build/test result, what needs human review, next step. Never push.
+   (An engine that started the session may push the branch afterwards if its operator turned that on; a direct session never pushes, the person does.)
 
 ## Never
 

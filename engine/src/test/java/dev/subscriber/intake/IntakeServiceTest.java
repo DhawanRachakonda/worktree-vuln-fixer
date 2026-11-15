@@ -231,4 +231,62 @@ class IntakeServiceTest {
 
         assertThat(sessions.find(id).orElseThrow().engine()).isEqualTo("claude");
     }
+
+    @Test
+    void aBranchHeaderIsRecordedWithTheSession() throws IOException {
+        String id = service.accept("securityaudit.issuefixesAgent", report("shop").toString(), List.of("release/1.2"), List.of()).orElseThrow();
+        FixSession s = sessions.find(id).orElseThrow();
+        assertThat(s.state()).isEqualTo(SessionState.QUEUED);
+        assertThat(s.sourceRequested()).isEqualTo("release/1.2");
+        assertThat(s.localChanges()).isFalse();
+        assertThat(sessions.events(id)).extracting(SessionEvent::detail).contains("source branch requested: release/1.2");
+    }
+
+    @Test
+    void theLocalChangesHeaderIsRecordedWithTheSession() throws IOException {
+        String id = service.accept("securityaudit.issuefixesAgent", report("shop").toString(), List.of(), List.of("true")).orElseThrow();
+        FixSession s = sessions.find(id).orElseThrow();
+        assertThat(s.state()).isEqualTo(SessionState.QUEUED);
+        assertThat(s.localChanges()).isTrue();
+        assertThat(s.sourceRequested()).isNull();
+    }
+
+    @Test
+    void invalidUnknownRepeatedOrCombinedHeadersAreRejectedAndNothingIsQueued() throws IOException {
+        String report = report("shop").toString();
+        List<List<List<String>>> cases = List.of(
+                List.of(List.of("a b"), List.of()),
+                List.of(List.of("a\nb"), List.of()),
+                List.of(List.of("x;rm"), List.of()),
+                List.of(List.of("--upload-pack=x"), List.of()),
+                List.of(List.of("a", "b"), List.of()),
+                List.of(List.of(), List.of("yes")),
+                List.of(List.of(), List.of("true", "true")),
+                List.of(List.of("main"), List.of("true")));
+        for (List<List<String>> c : cases) {
+            String id = service.accept("securityaudit.issuefixesAgent", report, c.get(0), c.get(1)).orElseThrow();
+            FixSession s = sessions.find(id).orElseThrow();
+            assertThat(s.state()).as(c.toString()).isEqualTo(SessionState.REJECTED);
+            assertThat(s.reason()).as(c.toString()).containsAnyOf("header", "headers");
+        }
+        assertThat(sessions.queued()).isEmpty();
+        assertThat(published).isEmpty();
+    }
+
+    @Test
+    void theSameReportOnAnotherBranchIsAcceptedButTheSameBranchIsADuplicate() throws IOException {
+        String report = report("shop").toString();
+        String first = service.accept("securityaudit.issuefixesAgent", report, List.of("develop"), List.of()).orElseThrow();
+        String same = service.accept("securityaudit.issuefixesAgent", report, List.of("develop"), List.of()).orElseThrow();
+        String other = service.accept("securityaudit.issuefixesAgent", report, List.of("main"), List.of()).orElseThrow();
+        String none = service.accept("securityaudit.issuefixesAgent", report).orElseThrow();
+        String noneAgain = service.accept("securityaudit.issuefixesAgent", report).orElseThrow();
+
+        assertThat(sessions.find(first).orElseThrow().state()).isEqualTo(SessionState.QUEUED);
+        assertThat(sessions.find(same).orElseThrow().state()).isEqualTo(SessionState.REJECTED);
+        assertThat(sessions.find(same).orElseThrow().reason()).contains("duplicate").contains("develop");
+        assertThat(sessions.find(other).orElseThrow().state()).isEqualTo(SessionState.QUEUED);
+        assertThat(sessions.find(none).orElseThrow().state()).isEqualTo(SessionState.QUEUED);
+        assertThat(sessions.find(noneAgain).orElseThrow().state()).isEqualTo(SessionState.REJECTED);
+    }
 }

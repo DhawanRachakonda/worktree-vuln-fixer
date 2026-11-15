@@ -28,14 +28,26 @@ public class FixSessionRepository {
 
     /** A message that was accepted ({@code QUEUED}) or refused ({@code REJECTED}). */
     public record NewSession(String id, SessionState state, String subject, String source, String report,
-            String repositoryPath, String agent, String engine, Instant receivedAt, String reason) {
+            String repositoryPath, String agent, String engine, Instant receivedAt, String reason, String sourceRequested, boolean localChanges) {
+
+        /** A message without a requested source branch. */
+        public NewSession(String id, SessionState state, String subject, String source, String report, String repositoryPath,
+                String agent, String engine, Instant receivedAt, String reason) {
+            this(id, state, subject, source, report, repositoryPath, agent, engine, receivedAt, reason, null, false);
+        }
+
+        /** A message with a requested source branch and no local changes. */
+        public NewSession(String id, SessionState state, String subject, String source, String report, String repositoryPath,
+                String agent, String engine, Instant receivedAt, String reason, String sourceRequested) {
+            this(id, state, subject, source, report, repositoryPath, agent, engine, receivedAt, reason, sourceRequested, false);
+        }
     }
 
     public void insert(NewSession s) {
         jdbc.sql("""
                 INSERT INTO fix_session (id, state, subject, source, report_path, repository_path, agent, engine, received_at,
-                                         reason)
-                VALUES (:id, :state, :subject, :source, :report, :repository, :agent, :engine, :receivedAt, :reason)""")
+                                         reason, source_requested, local_changes)
+                VALUES (:id, :state, :subject, :source, :report, :repository, :agent, :engine, :receivedAt, :reason, :sourceRequested, :localChanges)""")
                 .param("id", s.id())
                 .param("state", s.state().name())
                 .param("subject", s.subject())
@@ -46,6 +58,8 @@ public class FixSessionRepository {
                 .param("engine", s.engine())
                 .param("receivedAt", offset(s.receivedAt()))
                 .param("reason", cut(s.reason(), MAX_REASON))
+                .param("sourceRequested", s.sourceRequested())
+                .param("localChanges", s.localChanges())
                 .update();
     }
 
@@ -82,6 +96,23 @@ public class FixSessionRepository {
                 .param("base", worktree.baseCommit())
                 .param("id", id)
                 .update() == 1;
+    }
+
+    /** Records which branch the worktree started from, how that was chosen, and whether local changes were included. */
+    public void setSource(String id, String branch, String choice, boolean localChanges) {
+        jdbc.sql("UPDATE fix_session SET source_branch = :branch, source_choice = :choice, local_changes = :local WHERE id = :id")
+                .param("branch", branch).param("choice", choice).param("local", localChanges).param("id", id).update();
+    }
+
+    /** Records the publish state of a session: none, awaiting_confirmation, pushed or push_failed. */
+    public void setPublishState(String id, String publishState) {
+        jdbc.sql("UPDATE fix_session SET publish_state = :state WHERE id = :id").param("state", publishState).param("id", id).update();
+    }
+
+    /** Records the pull-request step: its state and the first link the command printed (may be null). */
+    public void setPullRequest(String id, String state, String link) {
+        jdbc.sql("UPDATE fix_session SET pull_request_state = :state, pull_request_link = :link WHERE id = :id")
+                .param("state", state).param("link", cut(link, 1024)).param("id", id).update();
     }
 
     /** Records the process of a running session again, for example after the window was re-attached. */
@@ -158,6 +189,25 @@ public class FixSessionRepository {
                 .param("report", cut(report, MAX_REPORT)).query(Long.class).single() > 0;
     }
 
+    /** True when a queued or running session works on this report and asked for the same source branch (null counts as none). */
+    public boolean hasActiveForReportAndBranch(String report, String sourceRequested) {
+        return jdbc.sql("""
+                SELECT COUNT(*) FROM fix_session WHERE report_path = :report AND state IN ('QUEUED', 'IN_PROGRESS')
+                AND ((source_requested IS NULL AND :branch IS NULL) OR source_requested = :branch)""")
+                .param("report", cut(report, MAX_REPORT)).param("branch", sourceRequested).query(Long.class).single() > 0;
+    }
+
+    /** The first earlier session of the same repository that is still queued or running, which this one waits behind. */
+    public Optional<FixSession> blockerOf(FixSession session) {
+        if (session.repositoryPath() == null) {
+            return Optional.empty();
+        }
+        return jdbc.sql("""
+                SELECT * FROM fix_session WHERE repository_path = :repository AND state IN ('QUEUED', 'IN_PROGRESS') AND seq < :seq
+                ORDER BY seq FETCH FIRST 1 ROWS ONLY""")
+                .param("repository", session.repositoryPath()).param("seq", session.seq()).query((rs, n) -> map(rs)).optional();
+    }
+
     /** True when a queued or running session works in this repository. */
     public boolean hasActiveForRepository(String repositoryPath) {
         return jdbc.sql("""
@@ -214,7 +264,14 @@ public class FixSessionRepository {
                 rs.getString("work_path"),
                 rs.getString("work_branch"),
                 rs.getString("base_commit"),
-                rs.getObject("fix_commits", Integer.class));
+                rs.getObject("fix_commits", Integer.class),
+                rs.getString("source_requested"),
+                rs.getString("source_branch"),
+                rs.getString("source_choice"),
+                rs.getBoolean("local_changes"),
+                rs.getString("publish_state"),
+                rs.getString("pull_request_state"),
+                rs.getString("pull_request_link"));
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {

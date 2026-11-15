@@ -37,7 +37,14 @@ public record FixSession(
         String workPath,
         String workBranch,
         String baseCommit,
-        Integer fixCommits) {
+        Integer fixCommits,
+        String sourceRequested,
+        String sourceBranch,
+        String sourceChoice,
+        boolean localChanges,
+        String publishState,
+        String pullRequestState,
+        String pullRequestLink) {
 
     /** Where the agent works: the session's worktree when it has one, the repository otherwise. */
     public String workingPath() {

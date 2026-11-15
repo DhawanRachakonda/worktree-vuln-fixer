@@ -48,7 +48,7 @@ class NatsMessageSourceTest {
         IntakeService intake = mock(IntakeService.class);
         NatsMessageSource source = new NatsMessageSource(properties(root, plain("nats://localhost:4222")), intake);
         source.handle("securityaudit.issuefixesAgent", "C:\\work\\r&d é\\.appmod\\security-audit\\issues.csv".getBytes(StandardCharsets.UTF_8));
-        verify(intake).accept("securityaudit.issuefixesAgent", "C:\\work\\r&d é\\.appmod\\security-audit\\issues.csv");
+        verify(intake).accept("securityaudit.issuefixesAgent", "C:\\work\\r&d é\\.appmod\\security-audit\\issues.csv", java.util.List.of(), java.util.List.of());
     }
 
     @Test
@@ -57,7 +57,7 @@ class NatsMessageSourceTest {
         NatsMessageSource source = new NatsMessageSource(properties(root, plain("nats://localhost:4222")), intake);
         source.handle("coverity.issuefixesAgent", new byte[0]);
         source.handle("coverity.issuefixesAgent", null);
-        verify(intake, org.mockito.Mockito.times(2)).accept("coverity.issuefixesAgent", "");
+        verify(intake, org.mockito.Mockito.times(2)).accept("coverity.issuefixesAgent", "", java.util.List.of(), java.util.List.of());
     }
 
     @Test
@@ -66,14 +66,14 @@ class NatsMessageSourceTest {
         NatsMessageSource source = new NatsMessageSource(properties(root, plain("nats://localhost:4222")), intake);
         source.handle("coverity.issuefixesAgent", "x".repeat(1_000_000).getBytes(StandardCharsets.UTF_8));
         ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
-        verify(intake).accept(eq("coverity.issuefixesAgent"), payload.capture());
+        verify(intake).accept(eq("coverity.issuefixesAgent"), payload.capture(), any(), any());
         assertThat(payload.getValue()).hasSize(NatsMessageSource.MAX_PAYLOAD_BYTES);
     }
 
     @Test
     void aFailureToRecordAMessageIsLoggedAndDoesNotEscapeIntoTheConnection(CapturedOutput output) {
         IntakeService intake = mock(IntakeService.class);
-        doThrow(new IllegalStateException("database is locked")).when(intake).accept(any(), any());
+        doThrow(new IllegalStateException("database is locked")).when(intake).accept(any(), any(), any(), any());
         NatsMessageSource source = new NatsMessageSource(properties(root, plain("nats://localhost:4222")), intake);
 
         source.handle("coverity.issuefixesAgent", "x".getBytes(StandardCharsets.UTF_8));
@@ -84,7 +84,7 @@ class NatsMessageSourceTest {
     @Test
     void aSubjectWithControlCharactersCannotForgeALogLine(CapturedOutput output) {
         IntakeService intake = mock(IntakeService.class);
-        doThrow(new IllegalStateException("boom")).when(intake).accept(any(), any());
+        doThrow(new IllegalStateException("boom")).when(intake).accept(any(), any(), any(), any());
         NatsMessageSource source = new NatsMessageSource(properties(root, plain("nats://localhost:4222")), intake);
 
         source.handle("a\n2026-11-10 INFO forged\u001b[2K", "x".getBytes(StandardCharsets.UTF_8));
@@ -136,8 +136,17 @@ class NatsMessageSourceTest {
             assertThat(source.status()).isNotEqualTo(Connection.Status.CONNECTED);
             source.stop();
         }
-        verify(mock(IntakeService.class), never()).accept(any(), any());
+        verify(mock(IntakeService.class), never()).accept(any(), any(), any(), any());
         assertThat(output.getAll()).doesNotContain("SECRET-TOKEN-VALUE").doesNotContain("SECRET-PASSWORD-VALUE")
                 .doesNotContain("SECRET-JWT-CONTENT").doesNotContain("alice-the-user");
+    }
+
+    @Test
+    void theTwoSourceHeadersAreHandedToTheIntakeAsData() {
+        IntakeService intake = mock(IntakeService.class);
+        NatsMessageSource source = new NatsMessageSource(properties(root, plain("nats://localhost:4222")), intake);
+        source.handle("securityaudit.issuefixesAgent", "/work/x.csv".getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                java.util.List.of("release/1.2"), java.util.List.of("true"));
+        verify(intake).accept("securityaudit.issuefixesAgent", "/work/x.csv", java.util.List.of("release/1.2"), java.util.List.of("true"));
     }
 }

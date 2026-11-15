@@ -25,3 +25,22 @@ jobs:
         run: npm install --global @fission-ai/openspec@1.13.2
       - name: Run every check
         run: java scripts/Verify.java
+
+  # The engine's live NATS tests (the headers of publish crossing a real server, token and password authentication) need a NATS server.
+  # They start it themselves in a Docker container (NatsTestServer), so this job only needs a runner with Docker: Linux. The Windows runners
+  # cannot run Linux containers, which is why the job above stays the default and this one adds the live tests.
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install the OpenSpec CLI, pinned to 1.13.2 because 2.0.0 fails strict validation on long requirement text
+        run: npm install --global @fission-ai/openspec@1.13.2
+      - name: Run every check, including the live NATS tests in Docker
+        run: java scripts/Verify.java --live

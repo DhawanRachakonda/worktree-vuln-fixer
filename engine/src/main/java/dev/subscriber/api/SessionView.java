@@ -32,11 +32,18 @@ public record SessionView(
         String workPath,
         String workBranch,
         String baseCommit,
-        Integer fixCommits) {
+        Integer fixCommits,
+        String sourceBranch,
+        String sourceChoice,
+        boolean localChanges,
+        String publishState,
+        String pullRequestState,
+        String pullRequestLink) {
 
     static SessionView of(FixSession s) {
         return new SessionView(s.id(), s.state(), s.subject(), s.source(), s.report(), s.repositoryPath(), s.agent(), s.runner(),
                 s.engine(), s.receivedAt(), s.startedAt(), s.endedAt(), s.exitCode(), s.headStart(), s.headEnd(), s.dirtyAtStart(),
-                s.outcome(), s.reason(), s.workName(), s.workPath(), s.workBranch(), s.baseCommit(), s.fixCommits());
+                s.outcome(), s.reason(), s.workName(), s.workPath(), s.workBranch(), s.baseCommit(), s.fixCommits(), s.sourceBranch(), s.sourceChoice(), s.localChanges(), s.publishState(),
+                s.pullRequestState(), s.pullRequestLink());
     }
 }

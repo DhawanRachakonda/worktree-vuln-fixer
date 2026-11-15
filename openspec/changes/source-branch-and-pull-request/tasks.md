@@ -1,0 +1,51 @@
+# Tasks
+
+## 1. Git helpers and the session record
+
+- [x] 1.1 Extend `GitRunner` with a run that accepts extra environment variables (for `GIT_INDEX_FILE`); verify with a unit test that the variable reaches git and that `GIT_DIR`/`GIT_WORK_TREE` are still removed
+- [x] 1.2 Add Flyway `V3` with `source_branch`, `source_choice`, `local_changes`, `publish_state`, `pull_request_state`, `pull_request_link`, extend `FixSession`, `FixSessionRepository` and `SessionView`; verify the repository tests read and write them and that earlier rows still load
+- [x] 1.3 Add `subscriber.publish.mode` (default `none`) and `subscriber.publish.pull-request-command` to `SubscriberProperties` with validation (mode is one of three values, command is non-blank when mode is `pull-request`); verify `SubscriberPropertiesTest`/config tests for valid, invalid and absent values
+
+## 2. Source branch selection
+
+- [x] 2.1 Implement the repository setting reader for `.appmod/publish.json` (`sourceBranch`, `mode`, `pullRequestCommand`) with strict validation; verify tests for missing file, bad JSON, invalid branch name and engine-default fallback, and for two repositories with different settings
+- [x] 2.2 Implement default-branch detection (`origin/HEAD`, `ls-remote --symref`, local `main`/`master`, checked-out branch) with its label and no fetch; verify with temporary repositories: remote default, no remote, `master` only
+- [x] 2.3 Implement `SourceBranchResolver` (option, saved setting, report commit, default branch, `HEAD`; an unusable given or saved branch is an error) and call it from `WorktreeService.baseCommit`; verify one test per scenario of `source-branch-selection` including "saved branch beats the report's commit" and its event
+- [x] 2.4 Implement the local-changes snapshot (temporary index, `add -A`, `write-tree`, `commit-tree`, parent = tip, message naming uncommitted local work); verify the checkout's branch, files and index are unchanged, tracked and untracked changes appear in the worktree, ignored files do not, and a clean checkout starts from the tip with an event
+- [x] 2.5 Update `openspec/specs` expectations covered in tests of `fix-session-worktrees` (report commit unusable now starts from the default branch) and run the engine tests to verify nothing else assumed `HEAD`
+
+## 3. Publishing options through NATS and the console
+
+- [x] 3.1 Make `ReportPublisher` send the headers `source-branch` and `unsafe-local-changes`, print the branch that will be used (given, saved or detected, and how), reject invalid names, a missing branch and the two options together; verify with the stand-in connector tests and a message captured from a real `nats-server` (live test, opt-in)
+- [x] 3.2 Add `--source-branch` and `--unsafe-local-changes` to the console `publish` command; verify the console tests for each scenario of `report-publishing`
+- [x] 3.3 Read and validate the headers in `NatsMessageSource`/`IntakeService` (valid branch or `true`; reject invalid, unknown or both) and record them on the session; verify rejection records and an accepted message end to end
+- [x] 3.4 Change the duplicate rule in `IntakeChecker` to report plus source branch, and make `session` and the queue say when a session waits behind another one of the same repository; verify "duplicate", "same report on another branch" and that the dispatcher still starts them one at a time
+
+## 4. Pushing and pull requests
+
+- [x] 4.1 Implement `BranchPublisher.push` (`git push origin <branch>` from the worktree, no force, no prompt, time limit, credentials removed from messages) and call it once from `SessionLifecycle` for `succeeded`/`partially_succeeded` sessions with commits; verify against a local bare repository: pushed, no remote, rejected push, other states push nothing, mode `none` makes no remote call
+- [x] 4.2 Implement the pull-request command template (split into arguments first, placeholders filled afterwards, no shell, description written to a file, first link printed is recorded); verify with a stub program: success, failure, unknown placeholder, program missing falls back to push, report text never reaches the command
+- [x] 4.3 Implement the confirmation for local-change sessions and the console command `publish-branch <session id> --yes`; verify unsafe session in `push` mode stays unpublished, the command pushes and runs the template, and unknown, unfinished or commit-less sessions are refused
+- [x] 4.4 Show source branch, its choice, local-changes flag and push/pull-request outcome in `session` and the read API; verify console and `SessionControllerTest` outputs
+
+## 5. Preflight in doctor, config, publish and appmod init
+
+- [x] 5.1 Implement `GitPreflight` (git installed, `origin`, `ls-remote`, `push --dry-run` reported as likely, source branch exists, PR command program on PATH) with consequences text and URL secrets removed; verify against a local bare repository, a missing remote, an unreachable remote (time limit) and a refused credential stub
+- [x] 5.2 Add the per-repository git blocks to `doctor` and the new settings to `config` (no network); verify `DoctorTest` with two repositories (one without a remote) and `config` output with an unreachable remote
+- [x] 5.3 Run the cheap subset at `publish` and refuse with the reason; verify "missing branch" and "invalid saved setting" refusals queue nothing
+- [x] 5.4 (two copies of the checks by design, see design.md decision 9: write the kit copy and the parity test that runs both on the same fixtures) Add the git checks, default-branch display, branch listing and the interactive confirmation to `appmod init` in `KitInstaller` (writes only `.appmod/publish.json`, never fails the install); verify installer tests: interactive choice saved, non-interactive saves nothing, remote unreachable still installs with a warning, `--upgrade` keeps the file
+
+## 6. Prompts, agents and documentation
+
+- [x] 6.1 Keep the agent rule "never push, never open pull requests" in `default.md`, the securityaudit prompt, the kit agents and `appmod-harness` instructions, and add the sentence that the engine may publish the branch afterwards; verify `PromptWriterTest` and the kit installer tests still pass
+- [x] 6.2 Make the direct (no engine) flow in `security-fixer.agent.md` and `appmod-harness` say how the base is chosen and that the person pushes; verify the rendered Claude files carry the same text (installer test)
+- [x] 6.3 Update `README.md`, `engine/docs/setup.md`, `operations.md`, `integrations.md`, `kit/README.md`, `kit/docs/*`, `AGENTS.md` and `CONTRIBUTING.md`: remove or correct every "never pushes"/"no pull request" statement, document the options, headers, modes, `.appmod/publish.json`, ready-made command templates (`gh`, `glab`, GitLab push options, a script for Bitbucket), the per-repository serialisation and the breaking base-order change; verify with `grep` that no stale statement remains and that every documented command was run for real
+- [x] 6.4 Run `java scripts/Verify.java` (and `--live` for the NATS tests) and record a real run against a local bare remote, plus one against a hosted repository if available, in `docs/evidence`; verify READY and that `docs/evidence.md` states which hosts were really tested and which were not
+
+## 7. End-to-end proof, CI, posts and videos (after sections 1 to 6 are done)
+
+- [x] 7.1 Test every new functionality once more end to end against the sample Spring, Node.js and Python repositories (`SampleRepositoriesTest` extended to publish, push to a local bare remote, pull-request command stub, confirmation, duplicate rule, preflight), plus a live run with a real `nats-server` carrying the two headers into a session; verify all pass and record the run in `docs/evidence/` and `engine/docs/e2e-source-branch.md` (expectations written first)
+- [x] 7.2 Add end-to-end tests for the installer step of `appmod init` (kit/tests/installer) and for the console commands `publish --source-branch`, `publish --unsafe-local-changes`, `publish-branch --yes`, `doctor`, `config`; verify each fails when its feature is broken (mutation check)
+- [x] 7.3 Cover the new tests in CI: `.github/workflows/ci.yml` runs `java scripts/Verify.java` on Linux and Windows (the new kit and engine tests are part of it), plus a `live` job on Ubuntu that runs `java scripts/Verify.java --live` (the live tests start their own NATS server in Docker, so nothing is installed; the hosted Windows runners cannot run Linux containers, which is why this job is Linux only); verified by `actionlint` on the workflow, by running the same command locally (READY, `docs/evidence/source-branch-verify-live.txt`), and a green run of both jobs is still to be seen after the first push
+- [ ] 7.4 Update the published post `C:/Projects/alumnx-ai-labs-training/dhawanrachakonda.github.io/posts/scanner-report-to-fix-branch.md` (copy new logs to its `posts/evidence/`, follow that repository's AGENTS.md and reviewer gate, no commit or push there without the author), and update `docs/social-posts.md` and `README.md` so no post says "never pushes" without the new qualification, and the new options are described with proven claims only; verify with `grep` and that every number cites `docs/evidence.md`
+- [x] 7.5 Remove the existing `docs/media/demo-claude.mp4` and `demo-copilot.mp4` (and the copies in the published post's `posts/media/`), record new videos from real runs that show the source branch, local changes, push and pull request, the preflight in `appmod init` and `doctor`, and update `docs/media/README.md` (table, lengths, what is real, what is not); verify the files play and the README matches them. If no screen recorder or capture method is available, stop and report instead of leaving the old videos removed without replacements. **Done with one stated gap:** the old videos were removed on the author's instruction; one new video (68 s, `docs/media/demo-source-branch.mp4`, made with `scripts/media/RenderFrames.java` and FFmpeg in Docker, checked with `ffprobe`) shows `appmod init`'s git step, the source branch, local changes, push and the pull-request link from real runs; **`doctor` is not in it** because it is a console command and the engine's console needs a terminal that could not be provided (the README says so)
