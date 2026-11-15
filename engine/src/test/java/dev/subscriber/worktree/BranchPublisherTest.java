@@ -163,8 +163,13 @@ class BranchPublisherTest {
 
     @Test
     void aRemoteThatRefusesTheBranchIsAFailureWithTheReasonAndTheLocalBranchIsKept() throws Exception {
-        // the remote already has a branch of that name with unrelated history, so a push that does not force is refused
+        // the remote already has a branch of that name with a different history, so a push that does not force is refused. The history must
+        // really differ: two repositories made in the same second hold an identical first commit (same content, author, message and time),
+        // and then the session's branch would simply be a fast-forward of the remote's, which git accepts.
         Path other = initRepository(root.resolve("other"));
+        Files.writeString(other.resolve("b.txt"), "a different history\n");
+        git(other, "add", "b.txt");
+        git(other, "commit", "-q", "-m", "different");
         git(other, "branch", "-M", BRANCH);
         git(other, "push", "-q", bare.toString(), BRANCH);
         given(session(SessionState.DONE, 1, false, "main"));
@@ -175,7 +180,7 @@ class BranchPublisherTest {
         verify(sessions).setPublishState(ID, "push_failed");
         assertThat(events()).anyMatch(e -> e.contains("push failed") && e.contains("publish-branch " + ID + " --yes"));
         assertThat(git(work, "rev-parse", "--abbrev-ref", "HEAD")).isEqualTo(BRANCH);
-        assertThat(git(bare, "log", "-1", "--format=%s", BRANCH)).isEqualTo("first");
+        assertThat(git(bare, "log", "-1", "--format=%s", BRANCH)).as("the remote's branch was not overwritten").isEqualTo("different");
     }
 
     @Test
