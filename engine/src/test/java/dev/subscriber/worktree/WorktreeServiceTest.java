@@ -151,24 +151,25 @@ class WorktreeServiceTest {
     }
 
     @Test
-    void anAuditedCommitThatIsNotInTheRepositoryFallsBackToHeadAndSaysWhy() throws Exception {
+    void anAuditedCommitThatIsNotInTheRepositoryFallsBackToTheDefaultBranchAndSaysWhy() throws Exception {
         WorktreeService.Created created = service.create(ID, repo, report("1234567890abcdef1234567890abcdef12345678"));
 
         assertThat(created.worktree().baseCommit()).isEqualTo(second);
-        assertThat(created.notes()).singleElement().asString().contains("report commit not used").contains("not in the repository");
+        assertThat(created.notes()).anyMatch(n -> n.contains("report commit not used") && n.contains("not in the repository"))
+                .anyMatch(n -> n.contains("default branch"));
     }
 
     @Test
-    void aReportWithoutACommitOrThatIsNotACsvStartsFromHeadAndSaysWhy() throws Exception {
+    void aReportWithoutACommitOrThatIsNotACsvStartsFromTheDefaultBranchAndSaysWhy() throws Exception {
         Path noCommit = Files.writeString(root.resolve("plain.csv"), "file,line\nx,1\n");
         WorktreeService.Created a = service.create(ID, repo, noCommit);
         assertThat(a.worktree().baseCommit()).isEqualTo(second);
-        assertThat(a.notes()).singleElement().asString().contains("report commit not used").contains("no commit");
+        assertThat(a.notes()).anyMatch(n -> n.contains("report commit not used") && n.contains("no commit"));
 
         String other = "99999999-aaaa-bbbb-cccc-dddddddddddd";
         WorktreeService.Created b = service.create(other, repo, Files.writeString(root.resolve("r.json"), "{}"));
         assertThat(b.worktree().baseCommit()).isEqualTo(second);
-        assertThat(b.notes()).singleElement().asString().contains("not a CSV");
+        assertThat(b.notes()).anyMatch(n -> n.contains("not a CSV"));
         WorktreeService.Created c = service.create("88888888-aaaa-bbbb-cccc-dddddddddddd", repo, null);
         assertThat(c.worktree().baseCommit()).isEqualTo(second);
     }

@@ -86,6 +86,13 @@ One row per accepted or rejected message.
 | `work_branch` | The branch the agent commits on, `appmod/fix-<first 8 characters of the id>`. |
 | `base_commit` | The commit the worktree started from: the audited commit named by the report when it could be used, `HEAD` otherwise. |
 | `fix_commits` | How many commits the agent made on the branch since the base commit, counted when the session reached a final state (also for `ERROR` and `INTERRUPTED`). Empty when there is no worktree or the count could not be read. |
+| `source_requested` | The source branch asked for when the report was published (the `source-branch` header). Empty when none was given. The duplicate rule compares it. |
+| `source_branch` | The branch the worktree started from. Empty when it started from a commit that is not a branch tip, and for sessions from before V3. |
+| `source_choice` | Which choice applied: `publish`, `saved`, `report-commit`, `default-branch` or `head`. |
+| `local_changes` | True when the worktree started from a snapshot commit holding the checkout's uncommitted work (`--unsafe-local-changes`). |
+| `publish_state` | `none`, `awaiting_confirmation`, `pushed` or `push_failed`. Empty (read as `none`) for sessions from before V3. |
+| `pull_request_state` | The pull-request step: `none`, `created`, `failed` or `skipped`. |
+| `pull_request_link` | The first link the pull-request command printed. |
 
 ### `fix_session_event`
 

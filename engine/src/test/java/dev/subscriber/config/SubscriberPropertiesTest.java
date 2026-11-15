@@ -331,4 +331,45 @@ class SubscriberPropertiesTest {
 
         assertThat(bind(props).copilot().allowedTools()).hasSize(11);
     }
+
+    @Test
+    void publishingIsOffUnlessAskedFor() {
+        SubscriberProperties p = bind(valid());
+        assertThat(p.publish().mode()).isEqualTo(SubscriberProperties.PublishMode.NONE);
+        assertThat(p.publish().pullRequestCommand()).isNull();
+    }
+
+    @Test
+    void thePublishModeAndCommandAreRead() {
+        Map<String, Object> m = valid();
+        m.put("subscriber.publish.mode", "pull-request");
+        m.put("subscriber.publish.pull-request-command", "gh pr create --base {base} --head {head}");
+        SubscriberProperties p = bind(m);
+        assertThat(p.publish().mode()).isEqualTo(SubscriberProperties.PublishMode.PULL_REQUEST);
+        assertThat(p.publish().pullRequestCommand()).isEqualTo("gh pr create --base {base} --head {head}");
+
+        Map<String, Object> push = valid();
+        push.put("subscriber.publish.mode", "push");
+        assertThat(bind(push).publish().mode()).isEqualTo(SubscriberProperties.PublishMode.PUSH);
+    }
+
+    @Test
+    void anInvalidPublishSettingStopsTheStartNamingTheSetting() {
+        Map<String, Object> unknown = valid();
+        unknown.put("subscriber.publish.mode", "force");
+        assertThat(failureOf(unknown)).contains("subscriber.publish.mode");
+
+        Map<String, Object> noCommand = valid();
+        noCommand.put("subscriber.publish.mode", "pull-request");
+        assertThat(failureOf(noCommand)).contains("subscriber.publish.pull-request-command is required");
+
+        Map<String, Object> blank = valid();
+        blank.put("subscriber.publish.mode", "pull-request");
+        blank.put("subscriber.publish.pull-request-command", "   ");
+        assertThat(failureOf(blank)).contains("subscriber.publish.pull-request-command is required");
+
+        Map<String, Object> multiline = valid();
+        multiline.put("subscriber.publish.pull-request-command", "gh\nrm");
+        assertThat(failureOf(multiline)).contains("one line");
+    }
 }

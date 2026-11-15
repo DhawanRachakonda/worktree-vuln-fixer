@@ -104,8 +104,9 @@ with Claude Code, leave it with `/exit`.
 | `session <id>` | One session: worktree, branch, commits, exit code, outcome |
 | `events` | The timeline: received, queued, worktree created, started, ended |
 | `config` | The tool and settings in force |
-| `doctor` | Checks the tool command, NATS, Git and the roots |
+| `doctor` | Checks the tool command, NATS, Git (per repository: remote, host, push, source branch) and the roots |
 | `reopen` | Opens a window that resumes a finished session's conversation |
+| `publish-branch` | Pushes the branch of a finished session (see [publishing.md](publishing.md)) |
 | `cleanup` | Removes the worktrees of finished sessions |
 | `exit` | Stops the engine |
 

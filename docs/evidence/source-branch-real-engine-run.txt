@@ -1,0 +1,48 @@
+Real engine run, 2026-11-15, Windows 11. Change: source-branch-and-pull-request.
+What is real: the engine jar (java -jar subscriber-engine-0.1.0-SNAPSHOT.jar, console off), a NATS server in Docker (nats:2.10-alpine), the real nats command-line client (natsio/nats-box image) publishing with message headers,
+real git (a sample Spring Boot project, files only, with a bare origin whose default branch is develop, and the checkout on feature/wip with uncommitted work), the engine's own read API for the results.
+What is a stand-in: the coding agent (a program that commits one file and writes result.json) and the pull-request command (a program that prints a link). No hosted git service, gh or glab. No terminal console (the engine refuses a console without a terminal).
+
+## Defect this run found (fixed, with a regression test): a local-changes session ended ERROR in a repository where appmod init had put .appmod/ in .gitignore
+reason shown by the engine before the fix: 'the worktree could not be created: git could not collect the local changes: warning: in the working copy of pom.xml ...' (only git's first line, a harmless line-ending warning)
+the real cause, reproduced by hand with the same command on a temporary index:
+$ git add -A -- . ":(exclude).appmod"        (the .gitignore of the repository contains .appmod/)
+warning: in the working copy of 'pom.xml', LF will be replaced by CRLF the next time Git touches it
+The following paths are ignored by one of your .gitignore files:
+.appmod
+hint: Use -f if you really want to add them.
+exit=1
+fix: add without a pathspec, then remove .appmod from the temporary index; error text now shows git's own error line.
+
+## 1. nats pub with the header  source-branch:develop   (before the fix; the engine run of this segment is logged in the second block)
+$ nats pub securityaudit.issuefixesAgent <report path> -H "source-branch:develop"
+d.subscriber.worktree.BranchPublisher    : Session a34cff55-1b32-4cd8-984e-59814ddb5e96: pushed appmod/fix-a34cff55 to origin
+d.subscriber.worktree.BranchPublisher    : Session a34cff55-1b32-4cd8-984e-59814ddb5e96: pull request created: https://host.example/org/spring-shop/pull/42
+
+## 2. After the fix, one engine, three messages
+$ nats pub securityaudit.issuefixesAgent <report path> -H "unsafe-local-changes:true"
+$ nats pub securityaudit.issuefixesAgent <report path> -H "source-branch:release/1.0"
+
+engine log (BranchPublisher):
+d.subscriber.worktree.BranchPublisher    : Session 93eed064-264b-474e-8a43-03b70ced681d: not published: this session started from a snapshot of uncommitted local work, so the branch appmod/fix-93eed06
+d.subscriber.worktree.BranchPublisher    : Session 7c765bec-fcab-4ca5-a2f0-bb4baa1ccda1: pushed appmod/fix-7c765bec to origin
+d.subscriber.worktree.BranchPublisher    : Session 7c765bec-fcab-4ca5-a2f0-bb4baa1ccda1: pull request created: https://host.example/org/spring-shop/pull/42
+
+read API, GET /api/sessions (fields of each session, newest first):
+"state":"DONE" "workBranch":"appmod/fix-7c765bec" "baseCommit":"bcaf9085b29b93da88bddbff3f879368062e9f69" "fixCommits":1 "sourceBranch":"release/1.0" "sourceChoice":"publish" "localChanges":false "publishState":"pushed" "pullRequestState":"created" "pullRequestLink":"https://host.example/org/spring-shop/pull/42" 
+
+"state":"DONE" "workBranch":"appmod/fix-93eed064" "baseCommit":"48ea830526891c0f5e9099bb3e52be6055bd306f" "fixCommits":1 "sourceBranch":"feature/wip" "sourceChoice":"local-changes" "localChanges":true "publishState":"awaiting_confirmation" "pullRequestState":null "pullRequestLink":null 
+
+the remote (bare repository) after the run:
+  appmod/fix-7c765bec
+  appmod/fix-a34cff55
+* develop
+  main
+  release/1.0
+appmod/fix-7c765bec (newest first): 3ed3621 fix(security): first issue;bcaf908 initial spring-shop;
+appmod/fix-a34cff55 (newest first): 4cd45d2 fix(security): first issue;35c2ab5 develop work;
+release/1.0 tip: bcaf908 initial spring-shop    develop tip: 35c2ab5 develop work
+
+the person's checkout afterwards: branch feature/wip, status:
+ M pom.xml
+?? notes.txt

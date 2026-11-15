@@ -22,19 +22,30 @@ final class ConsoleReports {
     }
 
     static String sessions(List<FixSession> sessions, long total, SessionState filter) {
+        return sessions(sessions, total, filter, s -> null);
+    }
+
+    /** As above; {@code waitsFor} gives the id of the session an item waits behind (same repository), or null. */
+    static String sessions(List<FixSession> sessions, long total, SessionState filter,
+            java.util.function.Function<FixSession, String> waitsFor) {
         String what = filter == null ? "sessions" : "%s sessions".formatted(filter);
         if (sessions.isEmpty()) {
             return "No %s.".formatted(what);
         }
         Stream<String> rows = sessions.stream().map(s -> LIST_ROW.formatted(s.id(), s.state().name(), fixes(s),
                 s.receivedAt() == null ? "-" : s.receivedAt().truncatedTo(ChronoUnit.SECONDS).toString(),
-                "%s / %s".formatted(Text.printable(s.source(), 24), Text.printable(s.repositoryPath(), 60))));
+                "%s / %s%s".formatted(Text.printable(s.source(), 24), Text.printable(s.repositoryPath(), 60), waiting(s, waitsFor.apply(s)))));
         return Stream.of(Stream.of(LIST_ROW.formatted("ID", "STATE", "FIXES", "RECEIVED", "SOURCE / REPOSITORY")), rows,
                 Stream.of("Showing %d of %d %s, newest first.".formatted(sessions.size(), total, what)))
                 .flatMap(lines -> lines).collect(Collectors.joining("\n"));
     }
 
     static String session(FixSession s) {
+        return session(s, null);
+    }
+
+    /** As above; {@code blocker} is the earlier session of the same repository this one waits behind, or null. */
+    static String session(FixSession s, FixSession blocker) {
         List<String> lines = new ArrayList<>(List.of(
                 line("id", s.id()),
                 line("state", s.state().name()),
@@ -53,6 +64,23 @@ final class ConsoleReports {
                 line("dirty at start", s.dirtyAtStart()),
                 line("outcome", s.outcome()),
                 line("reason", s.reason())));
+        if (blocker != null && s.state() == SessionState.QUEUED) {
+            lines.add(2, line("waiting", "behind %s (%s): one session at a time runs in a repository".formatted(blocker.id(), blocker.state().name())));
+        }
+        if (s.sourceChoice() != null || s.sourceRequested() != null || s.localChanges()) {
+            lines.add("");
+            lines.add(line("source branch", s.sourceBranch() != null ? s.sourceBranch() : s.sourceRequested() != null ? s.sourceRequested() + " (requested)" : "-"));
+            lines.add(line("source chosen by", s.sourceChoice() == null ? "not yet decided" : s.sourceChoice()));
+            lines.add(line("local changes", s.localChanges() ? "included (snapshot of uncommitted work)" : "no"));
+        }
+        if (s.publishState() != null && !"none".equals(s.publishState()) || s.pullRequestState() != null) {
+            lines.add(line("publish", s.publishState() == null ? "none" : s.publishState()));
+            lines.add(line("pull request", s.pullRequestState() == null ? "none" : s.pullRequestState()));
+            lines.add(line("pull request link", s.pullRequestLink()));
+        }
+        if ("awaiting_confirmation".equals(s.publishState()) || "push_failed".equals(s.publishState())) {
+            lines.add("To publish:  publish-branch %s --yes   (without --yes it only says what it would do)".formatted(s.id()));
+        }
         if (s.hasWorktree()) {
             lines.add("");
             lines.addAll(List.of(
@@ -64,6 +92,10 @@ final class ConsoleReports {
             lines.addAll(worktreeCommands(s));
         }
         return String.join("\n", lines).stripTrailing();
+    }
+
+    private static String waiting(FixSession s, String behind) {
+        return behind == null || s.state() != SessionState.QUEUED ? "" : "  (waits behind %s)".formatted(behind.length() > 8 ? behind.substring(0, 8) : behind);
     }
 
     /** The commits the agent made on the session's branch when there are any, else a dash; the marker the list shows. */
@@ -133,6 +165,18 @@ final class ConsoleReports {
             p.copilot().allowedTools().forEach(rule -> lines.add(line("allowed tool", rule)));
             p.copilot().deniedTools().forEach(rule -> lines.add(line("denied tool", rule)));
         }
+        lines.add(line("publish mode", p.publish().mode().name().toLowerCase().replace('_', '-')));
+        lines.add(line("pull-request command", p.publish().pullRequestCommand() == null ? "not set" : p.publish().pullRequestCommand()));
+        lines.add(line("source branch", "per repository in .appmod/publish.json (saved by appmod init), else given with publish --source-branch, else the repository's default branch"));
+        lines.add(line("local changes", "not included unless publish --unsafe-local-changes is given"));
+        p.subjects().stream().map(SubscriberProperties.Subject::repository).filter(java.util.Objects::nonNull).distinct().forEach(repository -> {
+            dev.subscriber.worktree.RepositorySettings.Read saved = dev.subscriber.worktree.RepositorySettings.read(Path.of(repository));
+            lines.add(line("repository settings", "%s: %s".formatted(repository, !saved.ok() ? "INVALID: " + saved.problem()
+                    : saved.settings().equals(dev.subscriber.worktree.RepositorySettings.EMPTY) ? "none saved"
+                    : "source branch %s, mode %s, command %s".formatted(saved.settings().sourceBranch() == null ? "(default)" : saved.settings().sourceBranch(),
+                            saved.settings().mode() == null ? "(engine's)" : saved.settings().mode().name().toLowerCase().replace('_', '-'),
+                            saved.settings().pullRequestCommand() == null ? "(engine's)" : saved.settings().pullRequestCommand()))));
+        });
         p.subjects().forEach(s -> lines.add(line("subject", "%s -> %s, %s".formatted(s.subject(), s.agent(),
                 s.repository() != null ? "repository %s".formatted(s.repository()) : "repository from report"))));
         return String.join("\n", lines).stripTrailing();

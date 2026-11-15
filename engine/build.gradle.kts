@@ -43,5 +43,7 @@ tasks.withType<Test> {
     // Tests that open real windows or need a NATS server are opt-in: ./gradlew test -Pwindow-tests -Pnats-tests
     systemProperty("window.tests", providers.gradleProperty("window-tests").map { it.ifBlank { "true" } }.orElse("false").get())
     systemProperty("nats.tests", providers.gradleProperty("nats-tests").map { it.ifBlank { "true" } }.orElse("false").get())
+    // GitPreflightParityTest runs the kit installer's copy of the git checks (a deliberate copy, see AGENTS.md), so a change there must re-run the tests.
+    inputs.files(fileTree("../kit/install") { include("GitSetup.java") }).withPropertyName("kitGitSetup").withPathSensitivity(PathSensitivity.RELATIVE)
 }
 

@@ -6,6 +6,7 @@ import dev.subscriber.store.FixSession;
 import dev.subscriber.store.FixSessionRepository;
 import dev.subscriber.store.SessionState;
 import dev.subscriber.store.Worktree;
+import dev.subscriber.worktree.BranchPublisher;
 import dev.subscriber.worktree.WorktreeProvisioner;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -32,6 +33,29 @@ public class SessionLifecycle {
     private final Clock clock;
     private final WorktreeProvisioner worktrees;
 
+    private BranchPublisher publisher;
+
+    /** Present in the running engine; without it (most tests) nothing is ever published. */
+    @Autowired(required = false)
+    public void setPublisher(BranchPublisher publisher) {
+        this.publisher = publisher;
+    }
+
+    /**
+     * Called once after a session ended: pushes its branch (and opens the pull request) when the publish mode says so and the session
+     * succeeded with commits. A failure is recorded by the publisher and never changes the session's state.
+     */
+    public void publishIfAsked(String id) {
+        if (publisher == null) {
+            return;
+        }
+        try {
+            publisher.afterSession(id);
+        } catch (RuntimeException e) {
+            log.error("Publishing the branch of session {} failed unexpectedly: {}", id, e.toString());
+        }
+    }
+
     /** For sessions that never have a worktree: no commits are counted. */
     public SessionLifecycle(FixSessionRepository sessions, SessionFolders folders, Clock clock) {
         this(sessions, folders, clock, null);
@@ -49,6 +73,16 @@ public class SessionLifecycle {
      * Records the worktree of a session that is about to start, with an event for it and one for each note about how its base commit was
      * chosen. Done before the launch, so a session whose launch fails still shows where its worktree is.
      */
+    /** As below, also recording where the worktree started: the source branch, the choice that applied, and local changes. */
+    @Transactional
+    public boolean worktreeCreated(String id, Worktree worktree, List<String> notes, WorktreeProvisioner.Source source) {
+        boolean changed = worktreeCreated(id, worktree, notes);
+        if (changed && source != null && source.choice() != null) {
+            sessions.setSource(id, source.branch(), source.choice(), source.localChanges());
+        }
+        return changed;
+    }
+
     @Transactional
     public boolean worktreeCreated(String id, Worktree worktree, List<String> notes) {
         Instant now = clock.instant();

@@ -2,6 +2,7 @@ package dev.subscriber.console;
 
 import dev.subscriber.config.SubscriberProperties;
 import dev.subscriber.nats.NatsMessageSource;
+import dev.subscriber.worktree.GitPreflight;
 import io.nats.client.Connection;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,15 +39,22 @@ public class Doctor {
     private final Supplier<Connection.Status> natsStatus;
     private final CommandFinder finder;
     private final boolean windows;
+    private final GitPreflight preflight;
 
     @Autowired
-    public Doctor(SubscriberProperties properties, JdbcClient jdbc, NatsMessageSource nats) {
+    public Doctor(SubscriberProperties properties, JdbcClient jdbc, NatsMessageSource nats, GitPreflight preflight) {
         this(properties, () -> jdbc.sql("SELECT 1").query(Integer.class).single() == 1, nats::status,
-                new CommandFinder(System.getenv("PATH"), isWindows(), System.getenv("PATHEXT")), isWindows());
+                new CommandFinder(System.getenv("PATH"), isWindows(), System.getenv("PATHEXT")), isWindows(), preflight);
     }
 
     Doctor(SubscriberProperties properties, Supplier<Boolean> databaseOpen, Supplier<Connection.Status> natsStatus,
             CommandFinder finder, boolean windows) {
+        this(properties, databaseOpen, natsStatus, finder, windows, null);
+    }
+
+    Doctor(SubscriberProperties properties, Supplier<Boolean> databaseOpen, Supplier<Connection.Status> natsStatus,
+            CommandFinder finder, boolean windows, GitPreflight preflight) {
+        this.preflight = preflight;
         this.properties = properties;
         this.databaseOpen = databaseOpen;
         this.natsStatus = natsStatus;
@@ -66,7 +74,36 @@ public class Doctor {
             checks.add(command("powershell", "powershell.exe"));
         }
         checks.add(dataDirectory());
+        checks.addAll(gitBlocks());
         return checks;
+    }
+
+    /**
+     * One block for each repository a subject names (fixed {@code repository}) that works in a worktree: the git checks of the capability
+     * git-preflight. A failing block never hides another item. A warning (something that only matters when publishing is on) passes and
+     * says so. Repositories that are found from a report are checked by {@code publish}, when the report names one.
+     */
+    private List<Check> gitBlocks() {
+        List<Check> blocks = new ArrayList<>();
+        if (preflight == null) {
+            return blocks;
+        }
+        properties.subjects().stream().filter(s -> s.repository() != null && s.isolation() == SubscriberProperties.Isolation.WORKTREE)
+                .map(SubscriberProperties.Subject::repository).distinct().forEach(repository -> {
+                    Path folder = Path.of(repository);
+                    if (!Files.isDirectory(folder)) {
+                        blocks.add(new Check("git " + folder.getFileName(), false, "%s does not exist or is not a folder".formatted(repository)));
+                        return;
+                    }
+                    List<GitPreflight.Check> results = preflight.run(folder, null);
+                    blocks.add(new Check("git " + folder.getFileName(), !GitPreflight.failed(results), repository));
+                    for (GitPreflight.Check r : results) {
+                        String detail = (r.status() == GitPreflight.Status.WARN ? "(warning) " : "") + r.detail()
+                                + (r.consequence().isEmpty() ? "" : " - " + r.consequence());
+                        blocks.add(new Check("  " + r.check(), r.status() != GitPreflight.Status.FAIL, detail));
+                    }
+                });
+        return blocks;
     }
 
     /** The text the console prints. */

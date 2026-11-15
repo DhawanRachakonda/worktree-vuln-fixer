@@ -1,4 +1,4 @@
-Live console session, Claude Code as the coding agent, Coverity-style CSV (hand-made, not a Coverity export). Recorded 2026-11-15; the text below is the engine console screen captured as it was shown. See also docs/media/demo-claude.mp4.
+Live console session, Claude Code as the coding agent, Coverity-style CSV (hand-made, not a Coverity export). Recorded 2026-11-15; the text below is the engine console screen captured as it was shown. (The video made from it, docs/media/demo-claude.mp4, was removed on 2026-11-15 because it showed screens from before the source-branch and push features; this text is unchanged.)
 
 ## the result the orchestrator read from the engine read API afterwards
 session=ae07524a-e920-41e4-95e8-7e922e248806 state=DONE outcome=succeeded commits=5

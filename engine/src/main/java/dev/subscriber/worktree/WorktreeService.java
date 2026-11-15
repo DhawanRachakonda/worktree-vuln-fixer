@@ -61,6 +61,11 @@ public class WorktreeService implements WorktreeProvisioner {
 
     @Override
     public Created create(String sessionId, Path repository, Path report) throws WorktreeException {
+        return create(sessionId, repository, report, SourceRequest.NONE);
+    }
+
+    @Override
+    public Created create(String sessionId, Path repository, Path report, SourceRequest request) throws WorktreeException {
         if (sessionId == null || !SESSION_ID.matcher(sessionId).matches()) {
             throw new WorktreeException("the session id is not a UUID");
         }
@@ -86,14 +91,18 @@ public class WorktreeService implements WorktreeProvisioner {
                 throw new WorktreeException("the branch %s already exists".formatted(branch));
             }
             List<String> notes = new ArrayList<>();
-            String base = baseCommit(repository, report, notes);
+            SourceBranchResolver.Decision decision = new SourceBranchResolver(git).resolve(repository, report, request.branch(),
+                    request.localChanges());
+            String base = decision.commit();
+            notes.addAll(decision.notes());
             GitRunner.Result added = git.run(repository, "worktree", "add", "-b", branch, folder.toString(), base);
             if (!added.ok()) {
                 cleanUp(repository, folder, branch);
                 throw new WorktreeException("git could not create the worktree: " + reasonOf(added));
             }
             log.info("Worktree {} created on {} from {}", name, branch, base);
-            return new Created(new Worktree(name, folder.toString(), branch, base), List.copyOf(notes));
+            return new Created(new Worktree(name, folder.toString(), branch, base), List.copyOf(notes),
+                    new Source(decision.branch(), decision.choice(), decision.localChanges()));
         } catch (IOException e) {
             cleanUp(repository, folder, branch);
             throw new WorktreeException("git could not be run: " + e.getMessage());
@@ -201,30 +210,6 @@ public class WorktreeService implements WorktreeProvisioner {
         return realParent.resolve(name);
     }
 
-    private String baseCommit(Path repository, Path report, List<String> notes) throws IOException, WorktreeException {
-        ReportCommit.Result named = report == null ? ReportCommit.Result.none("the report is not a CSV file") : ReportCommit.read(report);
-        if (named.usable()) {
-            GitRunner.Result found = git.run(repository, "rev-parse", "--verify", "--quiet", "%s^{commit}".formatted(named.commit()));
-            String full = found.output().strip();
-            if (found.ok() && FULL_COMMIT.matcher(full).matches()) {
-                if (named.dirty()) {
-                    notes.add("the audit ran on a working tree with uncommitted changes, so line numbers may differ from commit %s"
-                            .formatted(full.substring(0, 7)));
-                }
-                return full;
-            }
-            notes.add("report commit not used: the commit %s is not in the repository; started from HEAD".formatted(named.commit()));
-        } else {
-            notes.add("report commit not used: %s; started from HEAD".formatted(named.problem()));
-        }
-        GitRunner.Result head = git.run(repository, "rev-parse", "--verify", "--quiet", "HEAD^{commit}");
-        String full = head.output().strip();
-        if (!head.ok() || !FULL_COMMIT.matcher(full).matches()) {
-            throw new WorktreeException("the repository has no commit to start a worktree from");
-        }
-        return full;
-    }
-
     /** Removes what a failed attempt created: the folder (only if it did not exist before) and the branch (only if it is ours). */
     private void cleanUp(Path repository, Path folder, String branch) {
         try {
@@ -273,7 +258,7 @@ public class WorktreeService implements WorktreeProvisioner {
         }
     }
 
-    private static Path emptyHooksFolder(SubscriberProperties properties) {
+    static Path emptyHooksFolder(SubscriberProperties properties) {
         try {
             return Files.createDirectories(Path.of(properties.dataDir()).toAbsolutePath().normalize().resolve("no-hooks"));
         } catch (IOException e) {

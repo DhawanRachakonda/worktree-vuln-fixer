@@ -67,6 +67,7 @@ again on a ready machine installs nothing. No administrator rights are needed ex
 | 7 | **App modernization plugin ≥ 1.24.0** | marketplace registered? plugin in `copilot plugin list --json`? version? enabled? | `marketplace add` only if missing, `plugin install` only if missing, `plugin update` only if older, `plugin enable` only if disabled |
 | 8 | **JDK 25+** (for KitInstaller, the kit tools, the audit validators and the engine) | `JAVA_HOME`, `PATH`, `%USERPROFILE%\.jdks`, `%LOCALAPPDATA%\appmod\tools`, Program Files (Adoptium, Microsoft, Oracle, Corretto, Zulu) | portable Eclipse Temurin 25 into `%LOCALAPPDATA%\appmod\tools` |
 | 9 | **Kit files** | KitInstaller compares every file | copies new files; identical files are skipped; changed files are kept unless `--force` |
+| 9b | **Git checks and the source branch** (a git repository only) | git installed, `origin`, the host answers, a push is likely, the source branch exists | prints the results and the detected default branch; in a terminal you confirm or choose the branch, saved to `.appmod/publish.json`; without a terminal nothing is saved; never fails the install; `--upgrade` keeps the file (see [engine/docs/publishing.md](../../engine/docs/publishing.md)) |
 | 10 | Optional Maven 3.9+ (`--with-webapps`), .NET SDK 8 (`--with-dotnet`, SQL Server pack) | `mvn -v`, `dotnet --list-sdks` | portable Maven zip / WinGet |
 
 Portable tools (JDK, Maven) can be added to the user `PATH` (and `JAVA_HOME` set if empty) – the script asks, or use

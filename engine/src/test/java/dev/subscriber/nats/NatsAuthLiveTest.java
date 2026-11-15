@@ -30,8 +30,8 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 
 /**
- * Talks to NATS servers that require credentials. Opt-in: {@code ./gradlew test -Pnats-tests} with the {@code nats-server} program found at the
- * environment variable {@code NATS_SERVER_EXE} (or on the PATH). Each test starts its own server on a free loopback port and stops it, so
+ * Talks to NATS servers that require credentials. Opt-in: {@code ./gradlew test -Pnats-tests}. The server runs in a Docker container started by
+ * {@link NatsTestServer} (or is the {@code nats-server} program named by {@code NATS_SERVER_EXE}). Each test starts its own server on a free loopback port and stops it, so
  * nothing else is touched. Credentials in the form of a {@code .creds} file need an operator-mode server and are not covered here.
  */
 @ExtendWith(OutputCaptureExtension.class)
@@ -44,7 +44,7 @@ class NatsAuthLiveTest {
     @TempDir
     Path root;
 
-    private Process server;
+    private NatsTestServer server;
     private NatsMessageSource source;
 
     @AfterEach
@@ -53,27 +53,13 @@ class NatsAuthLiveTest {
             source.stop();
         }
         if (server != null) {
-            server.destroyForcibly().waitFor();
+            server.close();
         }
     }
 
     private int startServer(String... authArguments) throws IOException {
-        Assumptions.assumeTrue("true".equals(System.getProperty("nats.tests")), "opt-in: run with -Pnats-tests");
-        String exe = System.getenv("NATS_SERVER_EXE");
-        Assumptions.assumeTrue(exe != null && Files.isExecutable(Path.of(exe)), "set NATS_SERVER_EXE to the nats-server program");
-        int port;
-        try (ServerSocket free = new ServerSocket(0)) {
-            port = free.getLocalPort();
-        }
-        List<String> command = new java.util.ArrayList<>(List.of(exe, "-a", "127.0.0.1", "-p", String.valueOf(port)));
-        command.addAll(List.of(authArguments));
-        server = new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(root.resolve("server.log").toFile()).start();
-        await().atMost(Duration.ofSeconds(10)).ignoreExceptions().until(() -> {
-            try (java.net.Socket s = new java.net.Socket("127.0.0.1", port)) {
-                return s.isConnected();
-            }
-        });
-        return port;
+        server = NatsTestServer.start(root, authArguments);
+        return server.port();
     }
 
     private NatsMessageSource sourceFor(int port, String subject, SubscriberProperties.Nats nats, IntakeService intake) {
@@ -103,7 +89,7 @@ class NatsAuthLiveTest {
             publisher.flush(Duration.ofSeconds(5));
         }
 
-        verify(intake, timeout(10_000)).accept(subject, "C:\\work\\shop\\.appmod\\security-audit\\issues.csv");
+        verify(intake, timeout(10_000)).accept(subject, "C:\\work\\shop\\.appmod\\security-audit\\issues.csv", java.util.List.of(), java.util.List.of());
     }
 
     @Test
@@ -120,7 +106,7 @@ class NatsAuthLiveTest {
             publisher.flush(Duration.ofSeconds(5));
         }
 
-        verify(intake, timeout(10_000)).accept(subject, "C:\\x\\issues.csv");
+        verify(intake, timeout(10_000)).accept(subject, "C:\\x\\issues.csv", java.util.List.of(), java.util.List.of());
     }
 
     @Test
@@ -133,7 +119,7 @@ class NatsAuthLiveTest {
         Thread.sleep(6000);
 
         assertThat(source.status()).as("a refused login is never CONNECTED").isNotEqualTo(Connection.Status.CONNECTED);
-        verify(intake, never()).accept(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+        verify(intake, never()).accept(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
         assertThat(output.getAll()).doesNotContain(wrong).doesNotContain(TOKEN);
     }
 

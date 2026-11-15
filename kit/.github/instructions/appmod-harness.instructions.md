@@ -35,6 +35,7 @@ delegates to it too, and it can also be started directly.
    `security-audit` agent: the vendored audit skill requires its run directory outside the repository, so that agent
    writes there (and only there, besides `.appmod/`), and it never changes the audited code.
 5. **Never push, open PRs, or change git remotes/global config.** Local commits only, one per logical step:
+   An engine that started the session may push the branch afterwards if its operator turned that on; that is the engine's job, never yours.
    `appmod(<phase>): <summary>`, e.g. `appmod(upgrade): migrate javax.persistence to jakarta.persistence`.
 6. **Keep the build green.** Build with tests after each step (`./mvnw -B verify` / `./gradlew build`, falling back to
    `mvn` / `gradle`). Never delete or `@Disabled` tests to get green – fix the cause or report it.

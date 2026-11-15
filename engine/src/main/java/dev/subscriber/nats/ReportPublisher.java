@@ -5,6 +5,11 @@ import dev.subscriber.config.SubscriberProperties.Subject;
 import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Options;
+import io.nats.client.impl.Headers;
+import dev.subscriber.intake.IntakeChecker;
+import dev.subscriber.worktree.BranchNames;
+import dev.subscriber.worktree.SourceBranchPreview;
+import dev.subscriber.worktree.GitPreflight;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -41,15 +46,27 @@ public class ReportPublisher {
 
     private final SubscriberProperties properties;
     private final Connector connector;
+    private final IntakeChecker checker;
+    private final SourceBranchPreview preview;
+    private final GitPreflight preflight;
 
     @Autowired
-    public ReportPublisher(SubscriberProperties properties) {
-        this(properties, Nats::connect);
+    public ReportPublisher(SubscriberProperties properties, IntakeChecker checker, SourceBranchPreview preview, GitPreflight preflight) {
+        this(properties, Nats::connect, checker, preview, preflight);
     }
 
+    /** Without a repository check or a source-branch preview: only what the message itself needs. */
     ReportPublisher(SubscriberProperties properties, Connector connector) {
+        this(properties, connector, null, null, null);
+    }
+
+    ReportPublisher(SubscriberProperties properties, Connector connector, IntakeChecker checker, SourceBranchPreview preview,
+            GitPreflight preflight) {
+        this.preflight = preflight;
         this.properties = properties;
         this.connector = connector;
+        this.checker = checker;
+        this.preview = preview;
     }
 
     /**
@@ -57,6 +74,22 @@ public class ReportPublisher {
      * @param reportPath  the report; a relative path is made absolute
      */
     public Result publish(String subjectName, String reportPath) {
+        return publish(subjectName, reportPath, null, false);
+    }
+
+    /**
+     * As above, with a source branch (sent as the header {@code source-branch}) or the option to include local changes (the header
+     * {@code unsafe-local-changes}: {@code true}); not both. Before connecting, the branch that will be used is worked out and said, and a
+     * branch that cannot be used stops the publish.
+     */
+    public Result publish(String subjectName, String reportPath, String sourceBranch, boolean localChanges) {
+        String branch = sourceBranch == null || sourceBranch.isBlank() ? null : sourceBranch.strip();
+        if (branch != null && localChanges) {
+            return refused("Choose one: --source-branch or --unsafe-local-changes. Local changes belong to the checked-out branch, so they cannot be combined with another source branch.");
+        }
+        if (branch != null && BranchNames.problem(branch) != null) {
+            return refused("Nothing was published: the source branch %s is not usable: %s.".formatted(NatsLogging.printable(branch), BranchNames.problem(branch)));
+        }
         List<String> known = properties.subjects().stream().map(Subject::subject).toList();
         String subject = subjectName == null || subjectName.isBlank() ? (known.isEmpty() ? null : known.getFirst()) : subjectName.strip();
         if (subject == null || !known.contains(subject)) {
@@ -69,7 +102,26 @@ public class ReportPublisher {
         } catch (IllegalArgumentException e) {
             return refused(e.getMessage());
         }
-        return send(subject, report);
+        String said = "";
+        if (checker != null && preview != null) {
+            Subject configured = properties.subjects().stream().filter(s -> s.subject().equals(subject)).findFirst().orElseThrow();
+            if (checker.locate(configured, report.toString()) instanceof IntakeChecker.Accepted located) {
+                if (preflight != null) {
+                    var cheap = preflight.cheap(located.repository(), branch);
+                    if (GitPreflight.failed(cheap)) {
+                        GitPreflight.Check bad = cheap.stream().filter(c -> c.status() == GitPreflight.Status.FAIL).findFirst().orElseThrow();
+                        return refused("Nothing was published: %s: %s. %s".formatted(bad.check(), bad.detail(), bad.consequence()));
+                    }
+                }
+                SourceBranchPreview.Preview shown = preview.describe(located.repository(), located.report(), branch, localChanges);
+                if (!shown.ok()) {
+                    return refused(shown.message());
+                }
+                said = shown.message() + "\n";
+            }
+        }
+        Result sent = send(subject, report, branch, localChanges);
+        return sent.published() ? new Result(true, said + sent.message()) : sent;
     }
 
     private static Path absoluteReport(String reportPath) {
@@ -94,11 +146,23 @@ public class ReportPublisher {
         return path;
     }
 
-    private Result send(String subject, Path report) {
+    private Result send(String subject, Path report, String branch, boolean localChanges) {
         Options options = NatsOptionsFactory.builder(properties.nats(), new NatsLogging(), new NatsLogging())
                 .connectionName("subscriber-engine-publish").maxReconnects(0).connectionTimeout(CONNECT_TIMEOUT).build();
         try (Connection connection = connector.connect(options)) {
-            connection.publish(subject, report.toString().getBytes(StandardCharsets.UTF_8));
+            byte[] body = report.toString().getBytes(StandardCharsets.UTF_8);
+            if (branch == null && !localChanges) {
+                connection.publish(subject, body);
+            } else {
+                Headers headers = new Headers();
+                if (branch != null) {
+                    headers.add("source-branch", branch);
+                }
+                if (localChanges) {
+                    headers.add("unsafe-local-changes", "true");
+                }
+                connection.publish(subject, headers, body);
+            }
             connection.flush(FLUSH_TIMEOUT);
             return new Result(true, "Published to %s: %s".formatted(subject, NatsLogging.printable(report.toString())));
         } catch (InterruptedException e) {

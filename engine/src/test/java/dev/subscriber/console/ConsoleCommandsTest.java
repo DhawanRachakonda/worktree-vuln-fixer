@@ -397,4 +397,129 @@ class ConsoleCommandsTest {
         assertThat(ConsoleReports.config(claude, null).replaceAll(" +", " ")).contains("agent tool claude").contains("claude command claude-x")
                 .doesNotContain("copilot command");
     }
+
+    @Test
+    void aQueuedSessionSaysWhichSessionOfTheSameRepositoryItWaitsBehind() {
+        // ids.get(2) is queued and the earlier two are final, so nothing blocks it yet
+        assertThat(run("session " + ids.get(2))).doesNotContain("waiting");
+        String running = insert(SessionState.QUEUED, "report-4", null);
+        sessions.markStarted(running, "window", Instant.parse("2026-11-10T12:00:00Z"), 1L, Instant.parse("2026-11-10T12:00:00Z"), "h", false);
+        String waiting = insert(SessionState.QUEUED, "report-5", null);
+
+        String shown = run("session " + waiting);
+        assertThat(shown).contains("waiting").contains("behind " + ids.get(2)).contains("one session at a time");
+        assertThat(run("sessions --state QUEUED")).contains("waits behind " + ids.get(2).substring(0, 8));
+        assertThat(run("session " + running)).doesNotContain("waiting");
+    }
+
+    @Test
+    void aSessionShowsItsSourceBranchHowItWasChosenLocalChangesAndThePublishOutcome() {
+        String id = ids.get(0);
+        sessions.setSource(id, "release/1.2", "publish", true);
+        sessions.setPublishState(id, "pushed");
+        sessions.setPullRequest(id, "created", "https://host.example/pr/7");
+
+        String shown = run("session " + id);
+
+        assertThat(shown).contains("source branch").contains("release/1.2").contains("source chosen by").contains("publish")
+                .contains("local changes").contains("included").contains("pushed").contains("created")
+                .contains("https://host.example/pr/7");
+        assertThat(run("session " + ids.get(1))).doesNotContain("source branch").doesNotContain("pull request");
+    }
+
+    @Test
+    void publishTakesTheSourceBranchAndLocalChangesOptionsAndRefusesBothTogether() throws IOException {
+        Path report = Files.writeString(ROOT.resolve("options-check.csv"), "id\n");
+        String path = report.toString().replace('\\', '/');
+
+        assertThat(run("publish " + path + " --source-branch main --unsafe-local-changes")).contains("Choose one");
+        assertThat(run("publish " + path + " --source-branch a..b")).contains("not usable");
+        assertThat(run("publish " + path + " --unsafe-local-changes")).doesNotContain("Choose one");
+    }
+
+    private static String git(Path folder, String... args) throws IOException, InterruptedException {
+        List<String> command = new ArrayList<>(List.of("git", "-C", folder.toString(), "-c", "user.email=t@example.com", "-c", "user.name=t",
+                "-c", "commit.gpgsign=false"));
+        command.addAll(List.of(args));
+        Process p = new ProcessBuilder(command).redirectErrorStream(true).start();
+        String out = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(p.waitFor(60, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+        assertThat(p.exitValue()).as("git %s: %s", String.join(" ", args), out).isZero();
+        return out.strip();
+    }
+
+    /** A session that ended DONE with one commit on a real worktree whose repository has a bare origin. */
+    private String finishedSessionWithWork(String name, boolean localChanges) throws Exception {
+        Path root = ROOT.toRealPath();
+        Path repo = Files.createDirectories(root.resolve(name));
+        git(repo, "init", "-q", "-b", "main");
+        Files.writeString(repo.resolve("a.txt"), "one\n");
+        git(repo, "add", "a.txt");
+        git(repo, "commit", "-q", "-m", "first");
+        Path bare = root.resolve(name + "-origin.git");
+        git(root, "init", "-q", "--bare", bare.toString());
+        git(repo, "remote", "add", "origin", bare.toString());
+        String id = UUID.randomUUID().toString();
+        String branch = "appmod/fix-" + id.substring(0, 8);
+        Path work = root.resolve(name + "-fix-" + id.substring(0, 8));
+        git(repo, "worktree", "add", "-q", "-b", branch, work.toString());
+        Files.writeString(work.resolve("fix.txt"), "fixed\n");
+        git(work, "add", "fix.txt");
+        git(work, "commit", "-q", "-m", "fix");
+        sessions.insert(new NewSession(id, SessionState.QUEUED, "securityaudit.issuefixesAgent", "Security audit", "report-" + name,
+                repo.toString(), "security-fixer", "copilot", Instant.parse("2026-11-10T10:00:00Z"), null, null, localChanges));
+        sessions.setWorktree(id, new dev.subscriber.store.Worktree(work.getFileName().toString(), work.toString(), branch,
+                git(repo, "rev-parse", "HEAD")));
+        sessions.markStarted(id, "window", Instant.parse("2026-11-10T10:01:00Z"), 1L, Instant.parse("2026-11-10T10:00:59Z"), "h", false);
+        sessions.markFinal(id, SessionState.DONE, Instant.parse("2026-11-10T10:30:00Z"), 0, "e", "succeeded", null, 1);
+        return id;
+    }
+
+    @Test
+    void publishBranchRefusesAnUnknownAnUnfinishedAndAnErroredSession() {
+        assertThat(run("publish-branch " + UUID.randomUUID() + " --yes")).contains("No session");
+        assertThat(run("publish-branch " + ids.get(2) + " --yes")).contains("Nothing was pushed").contains("DONE or PARTIAL");
+        assertThat(run("publish-branch " + ids.get(1) + " --yes")).contains("Nothing was pushed").contains("ERROR");
+    }
+
+    @Test
+    void publishBranchPushesAfterConfirmationAndOnlyThen() throws Exception {
+        String id = finishedSessionWithWork("pb-shop", true);
+        sessions.setPublishState(id, "awaiting_confirmation");
+        Path bare = ROOT.toRealPath().resolve("pb-shop-origin.git");
+        String branch = "appmod/fix-" + id.substring(0, 8);
+
+        assertThat(run("session " + id)).contains("awaiting_confirmation").contains("publish-branch " + id + " --yes");
+        assertThat(run("publish-branch " + id)).contains("Would push").contains(branch).contains("uncommitted local work");
+        assertThat(git(bare, "branch", "--list")).doesNotContain(branch);
+
+        assertThat(run("publish-branch " + id + " --yes")).contains("pushed " + branch);
+
+        assertThat(git(bare, "branch", "--list")).contains(branch);
+        assertThat(run("session " + id)).contains("pushed");
+    }
+
+    @Test
+    void configShowsThePublishAndBranchSettingsFromSettingsOnlyEvenWhenTheRemoteIsUnreachable() throws Exception {
+        Path repo = Files.createDirectories(ROOT.resolve("cfg-shop"));
+        Files.createDirectories(repo.resolve(".appmod"));
+        Files.writeString(repo.resolve(".appmod/publish.json"), "{\"sourceBranch\":\"develop\",\"mode\":\"push\"}");
+        SubscriberProperties.Subject subject = new SubscriberProperties.Subject("securityaudit.issuefixesAgent", "Security audit", "security-fixer",
+                repo.toString(), null);
+        SubscriberProperties props = new SubscriberProperties(DATA.toString().replace('\\', '/'), List.of(ROOT.toString()), List.of(subject),
+                SubscriberProperties.Runner.HEADLESS, 1, new SubscriberProperties.Copilot("copilot", SubscriberProperties.PermissionMode.ASK),
+                new SubscriberProperties.Nats("nats://127.0.0.1:1", null, null, null, null), new SubscriberProperties.Access(null),
+                SubscriberProperties.Isolation.WORKTREE, SubscriberProperties.AgentTool.COPILOT, new SubscriberProperties.Claude("claude"),
+                new SubscriberProperties.Publish(SubscriberProperties.PublishMode.PULL_REQUEST, "gh pr create --base {base}"));
+
+        long start = System.nanoTime();
+        String out = ConsoleReports.config(props, null).replaceAll(" +", " ");
+
+        assertThat((System.nanoTime() - start) / 1_000_000L).as("milliseconds, no network").isLessThan(2000);
+        assertThat(out).contains("publish mode pull-request").contains("pull-request command gh pr create --base {base}")
+                .contains("source branch per repository").contains("local changes not included unless")
+                .contains("cfg-shop").contains("source branch develop, mode push");
+        Files.writeString(repo.resolve(".appmod/publish.json"), "{nope");
+        assertThat(ConsoleReports.config(props, null)).contains("INVALID").contains(".appmod/publish.json");
+    }
 }

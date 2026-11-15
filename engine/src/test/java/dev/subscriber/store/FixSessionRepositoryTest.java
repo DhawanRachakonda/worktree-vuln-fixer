@@ -235,4 +235,40 @@ class FixSessionRepositoryTest {
         assertThat(repo.setWorktree(id, worktree)).isFalse();
         assertThat(repo.find(id).orElseThrow().workPath()).isNull();
     }
+
+    @Test
+    void sourceAndPublishFieldsAreWrittenAndRead() {
+        String id = UUID.randomUUID().toString();
+        repo.insert(new NewSession(id, SessionState.QUEUED, "securityaudit.issuefixesAgent", "Security audit", "r", "C:/work/shop",
+                "appmod-harness", "copilot", T0, null, "release/1.2"));
+        FixSession queued = repo.find(id).orElseThrow();
+        assertThat(queued.sourceRequested()).isEqualTo("release/1.2");
+        assertThat(queued.localChanges()).isFalse();
+        assertThat(queued.publishState()).isNull();
+
+        repo.setSource(id, "release/1.2", "publish", true);
+        repo.setPublishState(id, "awaiting_confirmation");
+        repo.setPullRequest(id, "created", "https://host.example/pr/7");
+        FixSession s = repo.find(id).orElseThrow();
+        assertThat(s.sourceBranch()).isEqualTo("release/1.2");
+        assertThat(s.sourceChoice()).isEqualTo("publish");
+        assertThat(s.localChanges()).isTrue();
+        assertThat(s.publishState()).isEqualTo("awaiting_confirmation");
+        assertThat(s.pullRequestState()).isEqualTo("created");
+        assertThat(s.pullRequestLink()).isEqualTo("https://host.example/pr/7");
+    }
+
+    @Test
+    void theDuplicateQuestionComparesReportAndRequestedBranch() {
+        String id = UUID.randomUUID().toString();
+        repo.insert(new NewSession(id, SessionState.QUEUED, "s", "Security audit", "report-a", "C:/work/shop", "a", "copilot", T0, null,
+                "develop"));
+        assertThat(repo.hasActiveForReportAndBranch("report-a", "develop")).isTrue();
+        assertThat(repo.hasActiveForReportAndBranch("report-a", "main")).isFalse();
+        assertThat(repo.hasActiveForReportAndBranch("report-a", null)).isFalse();
+        assertThat(repo.hasActiveForReportAndBranch("report-b", "develop")).isFalse();
+        String plain = queue("report-c", "C:/work/shop", T0);
+        assertThat(plain).isNotNull();
+        assertThat(repo.hasActiveForReportAndBranch("report-c", null)).isTrue();
+    }
 }

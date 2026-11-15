@@ -50,22 +50,35 @@ public class IntakeChecker {
     }
 
     public Outcome check(Subject subject, String payload) {
+        return check(subject, payload, null);
+    }
+
+    /** As above; a second session for the same report is a duplicate only when it asks for the same source branch (null is none). */
+    public Outcome check(Subject subject, String payload, String requestedBranch) {
+        Outcome located = locate(subject, payload);
+        if (!(located instanceof Accepted ok)) {
+            return located;
+        }
+        if (sessions.hasActiveForReportAndBranch(ok.report().toString(), requestedBranch)) {
+            return new Rejected("duplicate: a queued or running session already works on this report%s".formatted(
+                    requestedBranch == null ? "" : " and source branch " + requestedBranch));
+        }
+        return ok;
+    }
+
+    /** Finds the real report and its repository, with every path check but the duplicate rule (also used before publishing). */
+    public Outcome locate(Subject subject, String payload) {
         Path report;
         try {
             report = realReport(payload);
         } catch (Refusal r) {
             return new Rejected(r.getMessage());
         }
-        Path repository;
         try {
-            repository = repositoryFor(subject, report);
+            return new Accepted(report, repositoryFor(subject, report));
         } catch (Refusal r) {
             return new Rejected(r.getMessage());
         }
-        if (sessions.hasActiveForReport(report.toString())) {
-            return new Rejected("duplicate: a queued or running session already works on this report");
-        }
-        return new Accepted(report, repository);
     }
 
     // ---------------------------------------------------------------------------------------------------------------

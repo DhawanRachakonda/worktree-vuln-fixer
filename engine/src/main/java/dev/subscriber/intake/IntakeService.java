@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -60,6 +61,16 @@ public class IntakeService {
      */
     @Transactional
     public Optional<String> accept(String subjectName, String payload) {
+        return accept(subjectName, payload, List.of(), List.of());
+    }
+
+    /**
+     * As above, with the values of the message headers {@code source-branch} and {@code unsafe-local-changes} (empty lists when absent).
+     * Headers are data: a value is accepted only as a valid branch name or the text {@code true}, and a message with an invalid or
+     * repeated header, or with both, is recorded as rejected.
+     */
+    @Transactional
+    public Optional<String> accept(String subjectName, String payload, List<String> sourceBranchHeader, List<String> localChangesHeader) {
         Optional<Subject> subject = properties.subjects().stream().filter(s -> s.subject().equals(subjectName)).findFirst();
         if (subject.isEmpty()) {
             log.info("Ignoring a message on the unsupported subject {}", printable(subjectName));
@@ -68,10 +79,15 @@ public class IntakeService {
         Subject s = subject.get();
         Instant now = clock.instant();
         String id = UUID.randomUUID().toString();
-        Outcome outcome = checker.check(s, payload);
+        SourceHeaders.Parsed headers = SourceHeaders.parse(sourceBranchHeader, localChangesHeader);
+        if (headers.problem() != null) {
+            reject(id, s, payload, headers.problem(), now);
+            return Optional.of(id);
+        }
+        Outcome outcome = checker.check(s, payload, headers.branch());
         if (outcome instanceof Accepted ok) {
             try {
-                queue(id, s, ok, now);
+                queue(id, s, ok, headers, now);
                 return Optional.of(id);
             } catch (IOException e) {
                 deleteQuietly(folders.folder(id));
@@ -86,13 +102,19 @@ public class IntakeService {
     }
 
     /** The agent works from a copy of the report and a prompt file, both made now, before the record exists. */
-    private void queue(String id, Subject s, Accepted ok, Instant now) throws IOException {
+    private void queue(String id, Subject s, Accepted ok, SourceHeaders.Parsed headers, Instant now) throws IOException {
         Path snapshot = folders.snapshot(id, ok.report());
         prompts.write(id, s, snapshot, ok.report(), ok.repository());
         sessions.insert(new NewSession(id, SessionState.QUEUED, s.subject(), s.source(), ok.report().toString(),
-                ok.repository().toString(), s.agent(), engine(), now, null));
+                ok.repository().toString(), s.agent(), engine(), now, null, headers.branch(), headers.localChanges()));
         sessions.setSnapshot(id, snapshot.toString());
         sessions.appendEvent(id, now, SessionState.QUEUED, "received");
+        if (headers.branch() != null) {
+            sessions.appendEvent(id, now, SessionState.QUEUED, "source branch requested: " + headers.branch());
+        }
+        if (headers.localChanges()) {
+            sessions.appendEvent(id, now, SessionState.QUEUED, "local changes of the checkout requested (unsafe-local-changes)");
+        }
         log.info("Session {} queued for {} (repository {})", id, s.subject(), printable(ok.repository().toString()));
         // Delivered after the transaction commits, so the dispatcher finds the record.
         events.publishEvent(new SessionQueued(id));

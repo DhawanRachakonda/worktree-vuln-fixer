@@ -105,7 +105,7 @@ public class SessionDispatcher {
     }
 
     @PreDestroy
-    void stop() {
+    public void stop() {
         stopped = true;
         scheduler.shutdown();
     }
@@ -170,12 +170,13 @@ public class SessionDispatcher {
         WorktreeProvisioner.Created created;
         try {
             Path report = session.snapshotPath() == null ? null : Path.of(session.snapshotPath());
-            created = worktrees.create(session.id(), repository, report);
+            created = worktrees.create(session.id(), repository, report,
+                    new WorktreeProvisioner.SourceRequest(session.sourceRequested(), session.localChanges()));
         } catch (WorktreeException | RuntimeException e) {
             lifecycle.error(session.id(), "the worktree could not be created: " + describe(e));
             return null;
         }
-        lifecycle.worktreeCreated(session.id(), created.worktree(), created.notes());
+        lifecycle.worktreeCreated(session.id(), created.worktree(), created.notes(), created.source());
         if (prompts != null) {
             try {
                 properties.subjects().stream().filter(s -> s.subject().equals(session.subject())).findFirst().ifPresent(subject -> {
@@ -225,6 +226,7 @@ public class SessionDispatcher {
     private void onEnded(String sessionId) {
         try {
             lifecycle.finish(sessionId);
+            lifecycle.publishIfAsked(sessionId);
         } catch (RuntimeException e) {
             log.error("Session {} ended but its result could not be recorded: {}", sessionId, e.toString());
             try {
