@@ -57,6 +57,7 @@ public final class InstallerTests {
             recordOfTheInstall();
             upgradeNeedsARecord();
             upgradeKeepsEditedFiles();
+            aPlainRerunKeepsTheBaselineForALaterUpgrade();
             upgradeRefusals();
         } finally {
             deleteTree(scratch);
@@ -245,7 +246,7 @@ public final class InstallerTests {
         Run kept = install(kit, "--target", target.toString(), "--tool", "claude");
 
         check("edited file: kept without --force", read(agent).endsWith("\nMy own rule.\n"));
-        check("edited file: the report says it was skipped", kept.out.contains("skip (exists)") && kept.out.contains("security-fixer.md"));
+        check("edited file: the report says it was skipped", kept.out.contains("skip (edited)") && kept.out.contains("security-fixer.md"));
         install(kit, "--target", target.toString(), "--tool", "claude", "--force");
         check("edited file: --force restores the rendered file", !read(agent).contains("My own rule."));
     }
@@ -345,6 +346,22 @@ public final class InstallerTests {
                 || l.startsWith("overwrite")) && read(verifier).endsWith("\nMy own rule.\n"));
         runIn(newer, newer, List.of(), "--target", target.toString(), "--upgrade", "--force");
         check("upgrade: --force also replaces the edited file", !read(verifier).contains("My own rule.") && read(verifier).contains("version two"));
+    }
+
+    static void aPlainRerunKeepsTheBaselineForALaterUpgrade() throws Exception {
+        Path newer = copyKit("kit-v2-plain");
+        Path target = fresh("upgrade-after-plain");
+        install(kit, "--target", target.toString(), "--tool", "claude");
+        Path fixer = target.resolve(".claude/agents/security-fixer.md");
+        Path source = newer.resolve(".github/agents/security-fixer.agent.md");
+        Files.writeString(source, read(source) + "\nA new sentence in version two.\n");
+
+        // Someone runs the installer again without --upgrade: the changed file is kept, as before.
+        Run plain = runIn(newer, newer, List.of(), "--target", target.toString(), "--tool", "claude");
+        check("plain rerun: the changed file is kept and reported as edited, not as unknown", plain.out.contains("skip (edited)") && plain.out.contains("security-fixer.md")
+                && !read(fixer).contains("version two"), plain.out);
+        Run up = runIn(newer, newer, List.of(), "--target", target.toString(), "--upgrade");
+        check("plain rerun: a later --upgrade still upgrades the file nobody edited", read(fixer).contains("A new sentence in version two.") && up.out.contains("upgrade "), up.out);
     }
 
     static void upgradeRefusals() throws Exception {

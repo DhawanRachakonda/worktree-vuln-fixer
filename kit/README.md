@@ -32,7 +32,7 @@ place for either tool. What Claude Code does **not** get: the front door `appmod
 `github-copilot-modernization:modernize`; the installer says so) and the prompt files (they use VS Code input variables). So with Claude Code
 use the agents directly: `claude --agent security-audit`, then `claude --agent security-fixer`. With `--tool both` the skills exist twice
 (`.github/skills` and `.claude/skills`); the real Copilot CLI lists each skill and each agent once. A repository install writes `.appmod/kit.json` (the tool and a SHA-256 per placed
-file): `--upgrade` (or `appmod upgrade kit <dir>`) then brings the kit files up to date and keeps any file you edited. `appmod kit <dir> --tool claude` and `appmod init` take
+file): `--upgrade` (or `appmod upgrade kit <dir>`) then brings the kit files up to date and keeps any file you edited (how to update the kit, the Copilot plugin, the engine and the intel-service: [docs/updating.md](docs/updating.md)). `appmod kit <dir> --tool claude` and `appmod init` take
 the same `--tool` option and ask on a new install. Tests: `java tests/installer/InstallerTests.java`.
 
 Then use **one entry point** for everything:

@@ -134,6 +134,10 @@ public class KitInstaller {
                 usage("--tool " + tool + " does not match the recorded tool (" + before + "): leave --tool out to upgrade as recorded");
             }
             tool = before;
+        } else if (target != null && Files.isRegularFile(target.resolve(".appmod/kit.json"))) {
+            // A plain run over an existing install keeps what the record says about the files it skips; without this the record would lose
+            // the baseline of every kept file and a later --upgrade could no longer tell an edited file from an untouched one.
+            readRecord(target);
         }
         boolean copilot = !tool.equals("claude");
         boolean claude = !tool.equals("copilot");

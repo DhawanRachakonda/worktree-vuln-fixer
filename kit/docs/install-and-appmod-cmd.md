@@ -86,7 +86,7 @@ With `--tool claude` none of steps 2, 3, 5, 6 and 7 runs.
 | `appmod plugin status` · `install` · `upgrade` | Only the app-modernization plugin |
 | `appmod upgrade [plugin]` | Refresh the marketplace catalog, update the plugin, report "updated from vX to vY" or "already at latest" |
 | `appmod upgrade copilot` · `node` · `all` | Copilot CLI (through its install source), Node/npm through Volta, or everything |
-| `appmod upgrade kit <dir>` | Preview what a newer kit would overwrite, ask, then copy with `--force` |
+| `appmod upgrade kit <dir>` | Preview what a newer kit would change (a dry run), ask, then apply it with `--upgrade`: only files nobody edited are replaced (see [updating.md](updating.md)); `--force` also replaces edited files |
 | `appmod kit <dir>` | Kit files only (finds/installs the JDK, runs KitInstaller) |
 | `appmod version` | Script version and pinned versions |
 

@@ -47,7 +47,7 @@ java install/KitInstaller.java --target C:\src\my-repo --tool claude    # copilo
 ```
 
 This writes `.github/...` for Copilot, `.claude/...` for Claude Code, the Java tools and a `.appmod/kit.json` record.
-`appmod upgrade kit C:\src\my-repo` brings the kit files up to date and keeps any file you edited.
+`appmod upgrade kit C:\src\my-repo` brings the kit files up to date and keeps any file you edited. To update later (a newer kit, a newer Copilot app modernization plugin, a newer engine), see [kit/docs/updating.md](../../kit/docs/updating.md).
 
 ## 4. Run the audit
 

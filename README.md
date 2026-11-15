@@ -4,7 +4,7 @@
 (**GitHub Copilot** or **Claude Code**, one setting) fixes the issues in its own git worktree: one tested commit per issue, never a push,
 your checkout untouched. You review a branch. Alongside it, the **intel-service** keeps the latest vulnerability intelligence fresh and hands it to the audit agent.
 
-Proof for every claim: [docs/evidence.md](docs/evidence.md). Write-up: [Can a scanner report become a reviewed fix branch?](https://dhawanrachakonda.github.io/post.html?p=scanner-report-to-fix-branch). Want to extend it? Read [CONTRIBUTING.md](CONTRIBUTING.md) and run `java scripts/Verify.java` before every commit.
+Proof for every claim: [docs/evidence.md](docs/evidence.md). Write-up: [Can a scanner report become a reviewed fix branch?](https://dhawanrachakonda.github.io/post.html?p=scanner-report-to-fix-branch). Want to extend it? Read [CONTRIBUTING.md](CONTRIBUTING.md) and run `java scripts/Verify.java` before every commit. Already installed it in a repository? How to update the kit, the Copilot app modernization plugin, the engine and the intel-service: [kit/docs/updating.md](kit/docs/updating.md).
 
 **Demo videos:** [Claude Code](docs/media/demo-claude.mp4) (live engine console, Coverity, security audit, intel-service) and [GitHub Copilot + app modernization + OpenRewrite](docs/media/demo-copilot.mp4) (Black Duck, Java upgrade). What in them is live and what is a replay: [docs/media/README.md](docs/media/README.md). Setup: [engine/docs/setup.md](engine/docs/setup.md).
 
