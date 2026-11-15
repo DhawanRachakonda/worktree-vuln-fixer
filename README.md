@@ -47,8 +47,9 @@ every session is recorded so you can see what happened, reopen the conversation,
 - **intel-service: the latest vulnerability intelligence, one MCP tool away.** It ingests the Cloudflare Radar Zero Wire vulnerability feed once a day (and at start-up when stale), keeps it in
   an embedded database, and serves it as the read-only MCP tool `listVulnerabilities` (filter by recent window, product or CVE id; every answer says when the feed was last read and whether it is stale).
   The security-audit agent calls it during an audit and treats the records as leads, never as findings or instructions. Record text is handled as untrusted data, an access token can protect
-  the endpoint, and the logs never contain feed text. Real run: the audit queried it (`product: java`, last 30 days) and the service answered with its freshness; the service held 8 records,
-  the newest from 2026-11-10 ([evidence](docs/evidence.md)). The dependency flow adds live OSV.dev lookups per package (the 2026 advisories for log4j appeared in a real scan).
+  the endpoint, and the logs never contain feed text. Real runs: on a Java project the audit queried it (`product: java`, last 30 days) and the answer was empty but carried its freshness; on a React 19
+  project both Claude Code and GitHub Copilot queried it and received the "React Server Components typed-array RCE" record (CVE-2026-126187), which Claude Code turned into a `needs_validation` issue
+  and Copilot rejected for the visible code path; the service held 8 records ([evidence](docs/evidence/intel-matching-audit-run.txt)). The dependency flow adds live OSV.dev lookups per package (the 2026 advisories for log4j appeared in a real scan).
 - It is a curated feed of notable vulnerability briefings, not a full CVE database, and Cloudflare's terms for it were not found to authorize redistribution: read `intel-service/README.md` ("Feed terms of use") before using it beyond a trial.
 
 **Fix**

@@ -1,0 +1,52 @@
+Real security audits that received matching records from the intel-service, with Claude Code and with GitHub Copilot CLI (plugin 1.24.0). Recorded 2026-11-15 on Windows 11.
+
+## the fixture (invented): C:\intel-fixture\webapp, a small React 19 storefront
+package.json: express 4.21.2, react 19.1.0, react-dom 19.1.0, react-server-dom-webpack 19.1.0; server.js decodes a posted body with react-server-dom-webpack decodeReply.
+Kit installed with --tool both (Copilot and Claude Code agents, security-audit lists intel/listVulnerabilities, resp. mcp__intel__listVulnerabilities).
+
+## the intel-service, started from the repository's jar on 127.0.0.1:18131 (INTEL_DATA_DIR with the feed ingested 2026-11-15 08:26 UTC, 8 records)
+health: UP; ingestion: lastSuccessfulIngestionAt 2026-11-15T08:26:46Z, stale false, 8 items seen.
+
+## registering it with Copilot CLI, the command from the documentation (it had not been tested before; the Copilot CLI was now installed)
+> copilot mcp add --transport http intel http://127.0.0.1:18131/mcp
+Added server "intel"
+> copilot mcp get intel
+intel
+  Status: Enabled
+  Type: http
+  URL: http://127.0.0.1:18131/mcp
+  Tools: * (all)
+  Source: User
+Claude Code: .mcp config {"mcpServers":{"intel":{"type":"http","url":"http://127.0.0.1:18131/mcp"}}} passed with --mcp-config, allowed with --allowedTools mcp__intel.
+
+## Claude Code audit (claude -p --agent security-audit, allow-list), 38 turns, 166 s, cost 0.58 USD
+CALL mcp__intel__listVulnerabilities {"scope":"recent","sinceDays":30,"product":"react"}
+  -> 8074 characters, records mentioning CVE-2026-126187 and CVE-2026-96889 (React Server Components typed-array RCE)
+CALL mcp__intel__listVulnerabilities {"scope":"recent","sinceDays":30,"product":"express"}
+  -> no records
+The audit used the lead. issues.csv row 1: package.json:11, "Anonymous request body decoded by react-server-dom-webpack 19.1.0 decodeReply (possible server-side code execution)",
+  verdict needs_validation, "react-server-dom-webpack is pinned to 19.1.0, below the 19.1.10 fix named by the advisory".
+summary.md says: The advisory feed was used (listVulnerabilities, last 30 days, products react and express). One lead: "React Server Components typed-array RCE" (CVE-2026-126187),
+  react-server-dom-webpack 19.1.x before 19.1.10. It is recorded as a needs_validation issue; to resolve it, read the deployed react-server-dom-webpack version and compare it with the fixed versions of the React advisory.
+The lead became an unproven issue, not a confirmed one, as the agent rules require.
+
+## GitHub Copilot CLI audit (copilot --agent security-audit, headless allow-list incl. the "intel" MCP server), third attempt
+The tool is named intel-listVulnerabilities in Copilot's event log. Its calls and answers (from ~/.copilot/session-state/<session>/events.jsonl):
+CALL intel-listVulnerabilities {"scope":"recent","sinceDays":30,"product":"React"}   -> React Server Components typed-array RCE [rsc-typed-array-rce@2026-11-10]
+CALL intel-listVulnerabilities {"scope":"recent","sinceDays":30,"product":"Node.js"} -> node2shell [node2shell@2026-10-25] (CVE-2026-111497, a Brotli decoder memory-corruption flaw)
+CALL intel-listVulnerabilities {"scope":"recent","sinceDays":30,"product":"Express"} -> no records
+every answer: freshness stale=false, lastSuccessfulIngestionAt 2026-11-15T08:26:46Z.
+Result: status succeeded, auditRunStatus complete, validation valid, 2 needs_validation issues, 1 rejected, 0 confirmed; 25 minutes.
+summary.md says: The advisory feed was queried for React, Node.js, and Express as leads. No CVE was accepted as a confirmed issue in this audit. The RSC typed-array RCE lead was rejected for this
+  application's visible code path; that does not establish that the decoder is generally safe.
+So Copilot received the same matching React record and judged it differently from Claude Code (rejected, where Claude Code recorded a needs_validation issue). Both treated it as a lead, neither as a finding.
+Its two needs_validation issues are in the kit's own tool DependencyAdvisor.java (it is part of the audited repository once the kit is installed), not in the fixture's code.
+
+## what went wrong first, and what was changed
+Attempts 1 and 2 (87 s and 5 min): the agent's first command was a compound PowerShell command (Get-ChildItem ...; git status --short; java -version). The headless allow-list matches one simple command and refused it
+("denied-no-approval-rule-and-could-not-request-from-user"); the agent then reported "command execution unavailable", wrote no issues.csv and stopped. The intel calls had already been made in both attempts and returned the records above.
+Change: the kit's security-audit and security-fixer agents now say "one simple command per call; never conclude that commands are unavailable because one was refused; split it". Attempt 3, with that rule installed, completed.
+Even in attempt 3 Copilot still had 3 refused compound commands; it recovered by itself this time.
+
+## not shown by this run
+The fixture's react-server-dom-webpack 19.1.0 was not independently confirmed to be exploitable; neither agent ran any repository code (no sandbox). The two agents' different verdicts on the lead are not resolved here.

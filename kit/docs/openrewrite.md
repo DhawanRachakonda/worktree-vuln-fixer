@@ -19,6 +19,11 @@ mvn -B -U -DskipTests org.openrewrite.maven:rewrite-maven-plugin:6.46.1:run \
   -Drewrite.activeRecipes=org.openrewrite.java.migrate.UpgradeToJava21 \
   -Drewrite.exportDatatables=true [-Drewrite.configLocation=.appmod/rewrite.yml]
 ```
+PowerShell (what a Copilot session on Windows runs): quote every `-D` argument and keep the command on one line, for example
+`.\mvnw.cmd -B -U org.openrewrite.maven:rewrite-maven-plugin:6.46.1:run "-Drewrite.activeRecipes=<recipe>" "-Drewrite.exportDatatables=true"`.
+Copilot's command parser cannot read an unquoted `-Drewrite.name=value`, calls the command unparseable, and a headless allow-list refuses it even when
+the Maven wrapper is allowed; the recorded Black Duck run lost its OpenRewrite step that way ([evidence](../../docs/evidence/bdh-run.txt)).
+
 Gradle: `gradle --init-script .appmod/rewrite-init.gradle rewriteRun -Dappmod.rewriteRecipes=… -Dappmod.rewriteArtifacts=…`
 (the init script applies the plugin, adds artifacts and an optional repository).
 

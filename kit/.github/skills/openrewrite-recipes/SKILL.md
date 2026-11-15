@@ -22,6 +22,14 @@ Detect the build tool, then run **from the repository root**:
 ```
 (use `mvn` if there is no `mvnw`)
 
+**In PowerShell (Windows, and any Copilot session there), quote every `-D` argument and keep the command on one line:**
+```
+.\mvnw.cmd -B -U org.openrewrite.maven:rewrite-maven-plugin:6.46.1:run "-Drewrite.recipeArtifactCoordinates=<artifact,...>" "-Drewrite.activeRecipes=<recipe,...>" "-Drewrite.configLocation=.appmod/rewrite.yml" "-Drewrite.exportDatatables=true"
+```
+Unquoted, Copilot's command parser cannot read `-Drewrite.name=value`, reports the command as unparseable, and a headless allow-list then
+refuses it even though the Maven wrapper is allowed: in a real run the agent lost its OpenRewrite step this way and edited `pom.xml` by hand
+(`docs/evidence/bdh-run.txt` in the kit's repository). Do not chain commands with `;` or `&&` either; one command per call.
+
 **Gradle**:
 ```
 ./gradlew --init-script .github/appmod/tools/rewrite-init.gradle rewriteRun \

@@ -84,8 +84,10 @@ With a wrong token the client reports `HTTP 401 (unauthorized)` and the server h
 
 ## Register it with GitHub Copilot CLI
 
-> Not tested here: the Copilot CLI was not installed on the machine this guide was verified on. The syntax below is
-> taken from GitHub's documentation for remote MCP servers in Copilot CLI.
+> Tested on 2026-11-15 with Copilot CLI 1.0.109 and the service on `127.0.0.1` (no token): `copilot mcp add --transport http intel <url>` printed
+> `Added server "intel"`, `copilot mcp get intel` showed it enabled with all tools, and a real audit called it (the tool appears as
+> `intel-listVulnerabilities` in Copilot's event log) and received matching records: [evidence](../../docs/evidence/intel-matching-audit-run.txt).
+> The header option for a token was not run.
 
 ```
 copilot mcp add --transport http --header "Authorization: Bearer <token>" intel http://127.0.0.1:8080/mcp
