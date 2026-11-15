@@ -13,7 +13,7 @@ java scripts/Verify.java --live     # also the engine tests that start a real na
 - The last line must read `READY`. If it reads `NOT READY`, the change is not finished: fix the cause, never the check.
 - Do not skip the hooks (`--no-verify`), do not weaken or delete a test to make it pass, and do not mark a task done in an OpenSpec `tasks.md` before its check has run.
 - Install the hooks once per clone: `git config core.hooksPath .githooks` (pre-commit runs `--quick`, pre-push runs everything). CI runs the same command on Linux and Windows for every push and pull request.
-- A `SKIPPED (openspec not installed)` line means the specs were not validated on your machine; install the OpenSpec CLI (`npm install --global @fission-ai/openspec`) or leave it to CI, and say so in your report.
+- A `SKIPPED (openspec not installed)` line means the specs were not validated on your machine; install the OpenSpec CLI (`npm install --global @fission-ai/openspec@1.13.2` (pinned: 2.0.0 turns long-requirement warnings into `--strict` failures)) or leave it to CI, and say so in your report.
 
 ## What a change must include
 

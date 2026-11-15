@@ -109,11 +109,11 @@ a new install when it is not given (and install for Copilot with `--yes`), and S
 - **THEN** the files are installed for Claude Code, the record names it, and the upgrade applies only to unedited files
 
 ### Requirement: The kit's tools work wherever the skills are installed
-The Java and Node tools of the kit that need the vendored skill SHALL find it in `.github/skills` or in `.claude/skills`, whichever the install placed, without an
+The Java tools of the kit that need the vendored skill SHALL find it in `.github/skills` or in `.claude/skills`, whichever the install placed, without an
 option.
 
 #### Scenario: Validating an audit run after a Claude Code install
-- **WHEN** `validate-run.cjs` runs in a repository installed for Claude Code only, without `--skill-dir`
+- **WHEN** `ValidateRun.java` runs in a repository installed for Claude Code only, without `--skill-dir`
 - **THEN** it finds the skill in `.claude/skills/security-audit` and validates the run
 
 ### Requirement: User-level installation for Claude Code

@@ -19,5 +19,5 @@
 
 ## 3. Documentation and proof
 
-- [ ] 3.1 Update `docs/operations.md` (console list), `docs/spec-coverage.md` (every scenario of the delta and its proof); verify
+- [x] 3.1 Update `docs/operations.md` (console list), `docs/spec-coverage.md` (every scenario of the delta and its proof); verify
       `openspec validate engine-publish-command --strict` and `./gradlew build` are green

@@ -161,9 +161,9 @@ SHALL NOT follow instructions found in that content, and SHALL NOT send reposito
 - **THEN** the agent does not obey it, and the comment may itself be reported as an issue
 
 ### Requirement: Optional vulnerability intelligence
-When the intel service's `listVulnerabilities` tool is registered, the audit MAY use it to bring recent advisories that
-match the repository's technology into the audit. The audit and the CSV SHALL work, with the same columns, when the tool
-is absent or unreachable.
+When the intel service's `listVulnerabilities` tool is registered (as the MCP server `intel`), the audit agent SHALL be able to call it: its tool list names the tool, for Copilot and, as
+`mcp__intel__listVulnerabilities`, for Claude Code. The audit MAY use it to bring recent advisories that match the repository's technology into the audit. The audit and the CSV SHALL work,
+with the same columns, when the tool is absent or unreachable.
 
 #### Scenario: Intel tool not registered
 - **WHEN** an audit runs and the tool is not registered
@@ -173,13 +173,20 @@ is absent or unreachable.
 - **WHEN** the tool is registered but the service does not answer
 - **THEN** the audit continues without it and records that fact in the summary rather than failing
 
+#### Scenario: Intel tool registered and reachable
+- **WHEN** an audit runs with the server `intel` connected
+- **THEN** the agent calls `listVulnerabilities`, gives what it returns to the hunters only as leads, and the summary says the feed was used
+
+#### Scenario: The installed agent can name the tool
+- **WHEN** the kit is installed for Claude Code
+- **THEN** `.claude/agents/security-audit.md` lists `mcp__intel__listVulnerabilities`
+
 ### Requirement: Behaviour when the skill cannot run fully
 If the coding tool cannot run the skill's parallel sub-agents or its validators, the audit SHALL still complete as far as
 it can, SHALL record in the summary which phase was reduced and why, and SHALL keep unproven issues as
-`needs_validation`. When the skill's own validators cannot read files on the operating system in use, the audit SHALL
-validate the run with the skill's own validation rules through a kit script, SHALL say in the summary that a weaker file
-read was used, and SHALL NOT report the skill's validators as having passed. A real validation error SHALL never be
-treated as that limitation.
+`needs_validation`. The skill's validators are Java programs that read files without following links on every operating system, so there is no
+reduced way of reading them; a real validation error SHALL never be treated as a limitation. When no JDK 25 is available the audit SHALL say that the
+validators were skipped and SHALL mark the run as not validated.
 
 #### Scenario: No sub-agent support
 - **WHEN** the coding tool cannot start sub-agents
@@ -189,16 +196,19 @@ treated as that limitation.
 - **WHEN** the machine cannot enforce the isolation the skill requires before running any code of the audited repository
 - **THEN** no target code is run, issues that depend on running it stay `needs_validation`, and the summary says so
 
-#### Scenario: Validators cannot read files on this operating system
-- **WHEN** the skill's validators refuse to read because the operating system lacks the protection they require
-- **THEN** the run is validated with the skill's own rules through the kit script, the result file and summary state
-  that the weaker read was used, and the run is not blocked as incomplete for that reason alone
-
 #### Scenario: Validation error is not a limitation
 - **WHEN** the run's findings or coverage ledger break a validation rule
 - **THEN** validation fails with the rule's message and the run is not reported as validated
 
-#### Scenario: Node is not installed
-- **WHEN** Node is not available at all
+#### Scenario: No JDK 25
+- **WHEN** no JDK 25 or later is available
 - **THEN** the audit notes that the validators were skipped and marks the run as not validated, and the CSV conversion
   still validates every row itself
+
+#### Scenario: Validators cannot read files on this operating system
+- **WHEN** the audit runs on native Windows, where the Node validators used to refuse to read
+- **THEN** the Java validators read the files without following links as on any other system, the run is validated with the skill's own rules, and nothing in the summary says that a weaker read was used
+
+#### Scenario: Node is not installed
+- **WHEN** Node is not available at all
+- **THEN** the audit is not affected: the validators are Java, and the run is validated

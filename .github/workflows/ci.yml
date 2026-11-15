@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install the OpenSpec CLI (only to validate the specs)
-        run: npm install --global @fission-ai/openspec
+      - name: Install the OpenSpec CLI (pinned: 2.0.0 fails --strict on long requirement text that 1.13.2 accepts)
+        run: npm install --global @fission-ai/openspec@1.13.2
       - name: Run every check
         run: java scripts/Verify.java
