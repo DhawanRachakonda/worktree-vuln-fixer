@@ -1,0 +1,4 @@
+org.springframework.boot.diagnostics.FailureAnalyzer=\
+dev.subscriber.config.DataDirectoryInUseFailureAnalyzer
+org.springframework.boot.EnvironmentPostProcessor=\
+dev.subscriber.console.ConsoleModeProcessor

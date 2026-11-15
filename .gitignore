@@ -1,0 +1,7 @@
+build/
+.gradle/
+.appmod/
+data/
+*.class
+*.log
+.idea/

@@ -1,0 +1,207 @@
+[
+  {
+    "verdict": "confirmed",
+    "fingerprint": "auth:admin-reset-unauthenticated",
+    "title": "Admin password reset needs no authentication",
+    "description": "The reset route is registered outside the security filter chain.\nAny caller can set a new admin password. Café-Nutzer sind betroffen: Zugriff über 管理 Konsole.",
+    "root_cause": "SecurityConfig permits /admin/reset without authentication",
+    "intended_behavior": "Only an authenticated admin may reset a password",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "src/main/java/app/AdminController.java",
+        "line": 12,
+        "scope": "AdminController.reset",
+        "description": "POST /admin/reset"
+      },
+      {
+        "kind": "sink",
+        "file": "src/main/java/app/SecurityConfig.java",
+        "line": 44,
+        "scope": "SecurityConfig.filterChain",
+        "description": "permitAll on the route"
+      }
+    ],
+    "evidence": [
+      {
+        "file": "src/main/java/app/SecurityConfig.java",
+        "line": 44,
+        "description": "requestMatchers(\"/admin/reset\").permitAll()"
+      }
+    ],
+    "conditions": [],
+    "execution": {
+      "attacker_perspective": "An unauthenticated network caller",
+      "payloads": [
+        "{\"password\":\"dummy\"}"
+      ],
+      "instructions": [
+        "POST the payload to /admin/reset on a local test instance"
+      ],
+      "observed_result": "The dummy admin password changes"
+    },
+    "remediation": {
+      "strategy": "Remove permitAll for the route and require the ADMIN role"
+    },
+    "severity": {
+      "likelihood": {
+        "score": "critical",
+        "reason": "No credentials needed"
+      },
+      "impact": {
+        "score": "critical",
+        "reason": "Takes over the admin account"
+      },
+      "overall_severity": "critical"
+    },
+    "confidence": {
+      "score": "medium",
+      "reason": "Reproduced in a sandboxed local instance"
+    }
+  },
+  {
+    "verdict": "needs_validation",
+    "fingerprint": "authz:orders-export-no-owner-check",
+    "title": "=HYPERLINK(\"http://example.invalid\",\"click\") export may skip the owner check",
+    "description": "The export endpoint takes an order id from the query string; whether a gateway enforces ownership is not visible in source.",
+    "claimed_root_cause": "OrderExportController.export() loads the order by id without comparing the owner",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "src/main/java/app/OrderExportController.java",
+        "line": 31,
+        "scope": "OrderExportController.export",
+        "description": "GET /orders/export?id="
+      },
+      {
+        "kind": "sink",
+        "file": "src/main/java/app/OrderRepository.java",
+        "line": 58,
+        "scope": "OrderRepository.findById",
+        "description": "loads any order by id"
+      }
+    ],
+    "evidence": [
+      {
+        "file": "src/main/java/app/OrderExportController.java",
+        "line": 31,
+        "description": "id comes straight from the request"
+      }
+    ],
+    "blockers": [
+      "Gateway ownership policy is not in the repository",
+      "No sandbox to run the controller"
+    ],
+    "validation_plan": {
+      "local": "Call the controller with a second dummy tenant's order id in a unit test",
+      "deployment": "Ask the platform owner whether the gateway filters by owner"
+    }
+  },
+  {
+    "verdict": "confirmed",
+    "fingerprint": "inj:user-search-sql",
+    "title": "SQL injection in user search",
+    "description": "The search term is concatenated into a SQL string, so a caller can change the query: it reads rows, e.g. \"x' OR '1'='1\", from any table.",
+    "root_cause": "UserDao.search builds SQL with string concatenation",
+    "intended_behavior": "The search term is bound as a parameter",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "src/main/java/app/UserController.java",
+        "line": 22,
+        "scope": "UserController.search",
+        "description": "q request parameter"
+      },
+      {
+        "kind": "propagation",
+        "file": "src/main/java/app/UserService.java",
+        "line": 40,
+        "scope": "UserService.find",
+        "description": "passes q unchanged"
+      },
+      {
+        "kind": "sink",
+        "file": "src/main/java/app/UserDao.java",
+        "line": 77,
+        "scope": "UserDao.search",
+        "description": "concatenated into SQL"
+      }
+    ],
+    "evidence": [
+      {
+        "file": "src/main/java/app/UserDao.java",
+        "line": 77,
+        "description": "\"select * from users where name like '%\" + q + \"%'\""
+      },
+      {
+        "file": "src/main/java/app/UserController.java",
+        "line": 22,
+        "description": "unvalidated request parameter"
+      }
+    ],
+    "conditions": [
+      {
+        "kind": "authentication_level",
+        "description": "any authenticated user"
+      }
+    ],
+    "execution": {
+      "attacker_perspective": "An authenticated user of the search page",
+      "payloads": [
+        "x' OR '1'='1"
+      ],
+      "instructions": [
+        "Call GET /users/search with the payload as q"
+      ],
+      "observed_result": "All user rows are returned"
+    },
+    "remediation": {
+      "strategy": "Use a PreparedStatement with a bound parameter in UserDao.search",
+      "code_changes": [
+        {
+          "file_name": "src/main/java/app/UserDao.java",
+          "fixed_code": "ps.setString(1, \"%\" + q + \"%\");"
+        }
+      ]
+    },
+    "severity": {
+      "likelihood": {
+        "score": "high",
+        "reason": "Any signed-in user can reach it"
+      },
+      "impact": {
+        "score": "high",
+        "reason": "Reads every user row"
+      },
+      "overall_severity": "high"
+    },
+    "confidence": {
+      "score": "high",
+      "reason": "Direct source trace with no sanitizer"
+    }
+  },
+  {
+    "verdict": "rejected",
+    "fingerprint": "xss:profile-name",
+    "title": "Stored XSS in profile name",
+    "description": "The name is rendered by a template that escapes output.",
+    "claimed_root_cause": "profile.html prints the name unescaped",
+    "trace": [
+      {
+        "kind": "sink",
+        "file": "src/main/resources/templates/profile.html",
+        "line": 9,
+        "scope": "profile.html",
+        "description": "th:text escapes"
+      }
+    ],
+    "evidence": [
+      {
+        "file": "src/main/resources/templates/profile.html",
+        "line": 9,
+        "description": "th:text, not th:utext"
+      }
+    ],
+    "reason": "The template engine escapes by default and the value is never marked safe"
+  }
+]

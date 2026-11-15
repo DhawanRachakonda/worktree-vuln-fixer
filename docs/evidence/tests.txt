@@ -1,0 +1,20 @@
+Test totals, run 2026-11-15 on Windows 11.
+
+## engine: ./gradlew clean build -Pwindow-tests -Pnats-tests (real windows, real nats-server), sums of the XML results
+{"test_classes":45,"tests":410,"skipped":0,"failures":0,"errors":0}
+
+## java tests/installer/InstallerTests.java
+
+66 passed, 0 failed
+
+## java tests/security-audit/ToolTests.java
+
+77 passed, 0 failed, 1 skipped
+
+## java tests/security-audit/ValidatorTests.java
+
+57 checks, 0 failed
+
+## java tests/security-fixer/ToolTests.java
+
+124 passed, 0 failed, 0 skipped

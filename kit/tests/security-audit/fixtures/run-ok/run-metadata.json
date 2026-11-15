@@ -1,0 +1,11 @@
+{
+  "run_id": "run-1",
+  "repo": "fixture-shop",
+  "target": "/work/fixture-shop",
+  "source_ref": { "commit": "0123456789abcdef0123456789abcdef01234567", "dirty": false },
+  "profile": "standard",
+  "scope_paths": [],
+  "budget": null,
+  "execution_policy": "sandboxed-source-and-local-only",
+  "run_status": "complete"
+}

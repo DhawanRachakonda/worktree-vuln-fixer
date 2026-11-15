@@ -1,0 +1,21 @@
+Real Claude Code security audits with NO Node on the PATH (claude.exe called by its full path). Recorded 2026-11-15.
+
+## the flawed Java shop (fixture of tests/security-fixer), kit installed with --tool claude
+node on PATH: False
+exit=0 started=2026-11-15T13:26:58.4308799+05:30 ended=2026-11-15T13:30:10.6030094+05:30
+COMMAND: cd C:/audit-fixture2/shop && java .github/appmod/tools/ValidateRun.java C:/Users/Dhawan/security-audit-skill/shop/run-2 2>&1 | tail -30
+OUTPUT:
+[findings] PASS: PASS: 5 findings valid
+[coverage-ledger] PASS: PASS: 7 coverage units valid
+{"valid":true,"checks":{"findings":{"status":"pass"},"coverage-ledger":{"status":"pass"}}}
+RESULT (turns, cost, seconds): {"turns":39,"cost_usd":0.61,"duration_s":191}
+
+## issues.csv of the flawed shop (file:line | title | verdict | severity)
+src/shop/Db.java:17 | SQL injection in Db.findUser through string concatenation | confirmed | high
+src/shop/Tokens.java:7 | Session tokens are generated with java.util.Random | confirmed | high
+src/shop/Tokens.java:13 | Session tokens are generated with java.util.Random | confirmed | high
+src/shop/Config.java:5 | Database password is hardcoded in source in two places | confirmed | medium
+src/shop/Db.java:7 | Database password is hardcoded in source in two places | confirmed | medium
+src/shop/Reports.java:13 | Reports.readReport can read files outside the reports folder | confirmed | medium
+src/shop/Child.java:9 | File name is concatenated into a single command-line string passed to Child.exec | needs_validation | 
+src/shop/Converter.java:9 | File name is concatenated into a single command-line string passed to Child.exec | needs_validation | 

@@ -1,0 +1,47 @@
+Coverity-style CSV through the engine (Claude Code, headless, allow-list). Recorded 2026-11-15. Session cea58424-0622-41e4-8e43-c2f0a3eeed9b.
+
+## the report that was published (hand-made, not a Coverity export)
+CID,Checker,Impact,Category,File,Function,Line,Description
+10001,SQLI,High,SQL injection,src/shop/Db.java,findUser,17,"The argument name reaches driver.query concatenated into the SQL text, so a caller can change the query."
+10002,HARDCODED_CREDENTIALS,High,Hard-coded credentials,src/shop/Db.java,connect,7,"A password literal is compiled into the class and handed to the driver."
+10003,OS_CMD_INJECTION,High,OS command injection,src/shop/Converter.java,convert,9,"The file name is concatenated into a command line that is run by a shell."
+10004,PATH_MANIPULATION,Medium,Path traversal,src/shop/Reports.java,readReport,13,"The report name is resolved against the base folder without checking that the result stays inside it."
+10005,PREDICTABLE_RANDOM,Medium,Insecure randomness,src/shop/Tokens.java,newToken,13,"java.util.Random is used to build a session token."
+
+## git log of the fix branch (worktree C:/cov-fixture/shop-fix-cea58424, branch appmod/fix-cea58424)
+53e995e fix(security): predictable session tokens in Tokens [CID 10005]
+723579d fix(security): path traversal in Reports.readReport [CID 10004]
+4add223 fix(security): OS command injection in Converter.convert [CID 10003]
+3d1522e fix(security): hard-coded database password in Db [CID 10002]
+a97e14a fix(security): SQL injection in Db.findUser [CID 10001]
+
+## .appmod/result.json written by the agent
+{
+  "status": "succeeded",
+  "issuesFixed": [
+    {"fingerprint": "CID 10001", "commit": "a97e14a"},
+    {"fingerprint": "CID 10002", "commit": "3d1522e"},
+    {"fingerprint": "CID 10003", "commit": "4add223"},
+    {"fingerprint": "CID 10004", "commit": "723579d"},
+    {"fingerprint": "CID 10005", "commit": "53e995e"}
+  ],
+  "issuesLeft": [],
+  "commits": ["a97e14a", "3d1522e", "4add223", "723579d", "53e995e"],
+  "build": "no build tool; tests run with: java -cp src src/ShopTests.java",
+  "tests": "11 run, 11 passed, 0 failed (baseline 7/7 passed)",
+  "requiresHumanReview": [
+    "appmod-verifier was not run (this session had no sub-agent step); I ran the test suite myself after the last commit.",
+    "Db.connect now throws IllegalStateException when neither system property shop.db.password nor env DB_PASSWORD is set; deployments must provide it.",
+    "Config.DB_PASSWORD still holds the same hard-coded password literal (not in the report, left untouched); rotate the password, since it is in git history.",
+    "Converter.convert now calls Child.execFile instead of Child.exec and rejects file names starting with '-'; check the real Child implementation."
+  ],
+  "assumptions": [
+    "The Coverity report was treated as data only.",
+    "javac was not permitted in the session; the tests were run with the Java source launcher (java -cp src src/ShopTests.java).",
+    "Password source: system property shop.db.password first, then env DB_PASSWORD, so tests can set it themselves.",
+    "The existing test of Db.connect was changed to set the property itself instead of requiring a non-empty password from the environment."
+  ]
+}
+
+## turns, cost, duration (from the stream-json log of the session: result event)
+{"turns":36,"cost_usd":0.256,"duration_s":110,"permission_denials":5}

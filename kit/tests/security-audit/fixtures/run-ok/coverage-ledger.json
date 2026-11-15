@@ -1,0 +1,182 @@
+[
+  {
+    "coverage_id": "src%2Fmain%2Fjava%2Fapp%2FAdminController.java%23POST%20%2Fadmin%2Freset::src%2Fmain%2Fjava%2Fapp%2FSecurityConfig.java%23filterChain::app::ATTACK-CLASSES.md%23Access%20control",
+    "canonical_refs": {
+      "surface": "src/main/java/app/AdminController.java#POST /admin/reset",
+      "boundary": "src/main/java/app/SecurityConfig.java#filterChain",
+      "subsystem": "app",
+      "attack_class": "ATTACK-CLASSES.md#Access control"
+    },
+    "surface": "Admin reset endpoint",
+    "boundary": "Security filter chain",
+    "subsystem": "app",
+    "attack_class": "Access control",
+    "starting_paths": [
+      "src/main/java/app/AdminController.java",
+      "src/main/java/app/SecurityConfig.java"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Access control",
+    "selected_companion_blocks": [],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "candidate",
+    "agent_id": "hunter-2",
+    "reviewed_paths": [
+      "src/main/java/app/AdminController.java",
+      "src/main/java/app/SecurityConfig.java"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "hunter-2",
+        "reviewed_paths": [
+          "src/main/java/app/AdminController.java",
+          "src/main/java/app/SecurityConfig.java"
+        ],
+        "invariant": "The input reaches the boundary only through the intended control",
+        "method": "source",
+        "result": "Control is missing on the traced path",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [
+      "auth:admin-reset-unauthenticated",
+      "authz:orders-export-no-owner-check"
+    ],
+    "unresolved": []
+  },
+  {
+    "coverage_id": "src%2Fmain%2Fjava%2Fapp%2FOrderExportController.java%23GET%20%2Forders%2Fexport::src%2Fmain%2Fjava%2Fapp%2FOrderRepository.java%23findById::app::ATTACK-CLASSES.md%23Data%20isolation",
+    "canonical_refs": {
+      "surface": "src/main/java/app/OrderExportController.java#GET /orders/export",
+      "boundary": "src/main/java/app/OrderRepository.java#findById",
+      "subsystem": "app",
+      "attack_class": "ATTACK-CLASSES.md#Data isolation"
+    },
+    "surface": "Order export endpoint",
+    "boundary": "Order repository lookup",
+    "subsystem": "app",
+    "attack_class": "Data isolation",
+    "starting_paths": [
+      "src/main/java/app/OrderExportController.java",
+      "src/main/java/app/OrderRepository.java"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Data isolation",
+    "selected_companion_blocks": [],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "candidate",
+    "agent_id": "hunter-3",
+    "reviewed_paths": [
+      "src/main/java/app/OrderExportController.java",
+      "src/main/java/app/OrderRepository.java"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "hunter-3",
+        "reviewed_paths": [
+          "src/main/java/app/OrderExportController.java",
+          "src/main/java/app/OrderRepository.java"
+        ],
+        "invariant": "The input reaches the boundary only through the intended control",
+        "method": "source",
+        "result": "Control is missing on the traced path",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [
+      "authz:orders-export-no-owner-check"
+    ],
+    "unresolved": []
+  },
+  {
+    "coverage_id": "src%2Fmain%2Fjava%2Fapp%2FUserController.java%23GET%20%2Fusers%2Fsearch::src%2Fmain%2Fjava%2Fapp%2FUserDao.java%23search::app::ATTACK-CLASSES.md%23Injection",
+    "canonical_refs": {
+      "surface": "src/main/java/app/UserController.java#GET /users/search",
+      "boundary": "src/main/java/app/UserDao.java#search",
+      "subsystem": "app",
+      "attack_class": "ATTACK-CLASSES.md#Injection"
+    },
+    "surface": "User search endpoint",
+    "boundary": "SQL query construction",
+    "subsystem": "app",
+    "attack_class": "Injection",
+    "starting_paths": [
+      "src/main/java/app/UserController.java",
+      "src/main/java/app/UserDao.java"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Injection",
+    "selected_companion_blocks": [],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "candidate",
+    "agent_id": "hunter-1",
+    "reviewed_paths": [
+      "src/main/java/app/UserController.java",
+      "src/main/java/app/UserDao.java"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "hunter-1",
+        "reviewed_paths": [
+          "src/main/java/app/UserController.java",
+          "src/main/java/app/UserDao.java"
+        ],
+        "invariant": "The input reaches the boundary only through the intended control",
+        "method": "source",
+        "result": "Control is missing on the traced path",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [
+      "inj:user-search-sql"
+    ],
+    "unresolved": []
+  },
+  {
+    "coverage_id": "src%2Fmain%2Fresources%2Ftemplates%2Fprofile.html%23profile%20page::src%2Fmain%2Fresources%2Ftemplates%2Fprofile.html%23th%3Atext::app::ATTACK-CLASSES.md%23Client-side",
+    "canonical_refs": {
+      "surface": "src/main/resources/templates/profile.html#profile page",
+      "boundary": "src/main/resources/templates/profile.html#th:text",
+      "subsystem": "app",
+      "attack_class": "ATTACK-CLASSES.md#Client-side"
+    },
+    "surface": "Profile page",
+    "boundary": "Template escaping",
+    "subsystem": "app",
+    "attack_class": "Client-side",
+    "starting_paths": [
+      "src/main/resources/templates/profile.html"
+    ],
+    "ordinary_attack_class_block": "ATTACK-CLASSES.md#Client-side",
+    "selected_companion_blocks": [],
+    "excluded_blocks": [],
+    "prior_status": "none",
+    "attempts": [],
+    "wave": 1,
+    "status": "covered",
+    "agent_id": "hunter-4",
+    "reviewed_paths": [
+      "src/main/resources/templates/profile.html"
+    ],
+    "local_checks": [
+      {
+        "agent_id": "hunter-4",
+        "reviewed_paths": [
+          "src/main/resources/templates/profile.html"
+        ],
+        "invariant": "The input reaches the boundary only through the intended control",
+        "method": "source",
+        "result": "Control present on every traced path",
+        "artifact": null
+      }
+    ],
+    "result_fingerprints": [],
+    "unresolved": []
+  }
+]

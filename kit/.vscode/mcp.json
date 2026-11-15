@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "appmod": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@microsoft/github-copilot-app-modernization-mcp-server@1.24.0"]
+    }
+  }
+}

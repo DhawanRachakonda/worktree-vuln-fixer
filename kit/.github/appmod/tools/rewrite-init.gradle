@@ -1,0 +1,43 @@
+// AppMod harness: apply OpenRewrite to a Gradle build without editing build.gradle.
+// Invoked as:
+//   gradle --init-script .appmod/rewrite-init.gradle rewriteRun \
+//     -Dappmod.rewriteRecipes=<fqn,...> -Dappmod.rewriteArtifacts=<g:a:v,...> \
+//     [-Dappmod.rewriteConfig=.appmod/rewrite.yml] [-Dappmod.rewritePluginVersion=latest.release] \
+//     [-Dappmod.rewriteRepositoryUrl=https://artifactory.example/maven]
+
+def csv = { String key -> (System.getProperty(key, '') ?: '').split(',').collect { it.trim() }.findAll { it } }
+def repoUrl = System.getProperty('appmod.rewriteRepositoryUrl', '')
+
+initscript {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.openrewrite:plugin:${System.getProperty('appmod.rewritePluginVersion', 'latest.release')}")
+    }
+}
+
+rootProject {
+    plugins.apply(org.openrewrite.gradle.RewritePlugin)
+
+    repositories {
+        if (repoUrl) {
+            maven { url = uri(repoUrl) }
+        }
+        mavenCentral()
+    }
+
+    dependencies {
+        csv('appmod.rewriteArtifacts').each { add('rewrite', it) }
+    }
+
+    rewrite {
+        csv('appmod.rewriteRecipes').each { activeRecipe(it) }
+        def cfg = System.getProperty('appmod.rewriteConfig', '')
+        if (cfg) {
+            configFile = project.file(cfg)
+        }
+        exportDatatables = true
+    }
+}

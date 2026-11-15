@@ -1,0 +1,12 @@
+Original (Node) vs Java port of the two audit validators, run on the same inputs. Recorded 2026-11-15.
+Each input is run through the real command-line path of the original (validate-findings.cjs / validate-coverage-ledger.cjs, with a shim that lets Node read files on Windows) and through the Java port; exit code, standard output and standard error must be identical.
+
+## findings: generated corpus (upstream tests' own documents + 25 mutations of each)
+{"total":3276,"same":3276,"diff":0,"nodePass":119,"nodeFail":3157}
+## findings: 47/45 hand-made edge inputs (text limits, UTF-8, sizes, nesting, numbers, duplicate keys)
+{"total":47,"same":47,"diff":0,"nodePass":4,"nodeFail":43}
+
+## ledger: generated corpus (upstream tests' own documents + 25 mutations of each)
+{"total":1638,"same":1638,"diff":0,"nodePass":102,"nodeFail":1536}
+## ledger: 47/45 hand-made edge inputs (text limits, UTF-8, sizes, nesting, numbers, duplicate keys)
+{"total":45,"same":45,"diff":0,"nodePass":2,"nodeFail":43}

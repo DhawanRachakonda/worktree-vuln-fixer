@@ -1,0 +1,119 @@
+Black Duck-style report -> engine -> Copilot CLI (appmod-harness) with the GitHub Copilot app modernization plugin 1.24.0. Recorded 2026-11-15. Session ce8a085d-368a-487e-aae4-b4a3ab1abd15. Started 12:41:38, ended 12:54:29 (12 min 51 s).
+
+## the report that was published (hand-made, not a Black Duck export)
+{
+  "source": "Black Duck Hub",
+  "sample": true,
+  "schemaVersion": 1,
+  "analysisDate": "2026-11-15",
+  "analysisMethod": "Hand-made fixture for testing the NATS-triggered remediation of a dependency report; not a Black Duck Hub scan or native vendor export. Issue IDs are local fixture identifiers.",
+  "projectPath": "C:\\bdh-fixture\\orders",
+  "description": "Two dependency findings of the demo project, for testing the dependency fix flow.",
+  "issues": [
+    {
+      "id": "LOCAL-BDH-101",
+      "title": "Apache Log4j2 JNDI lookup remote code execution (Log4Shell)",
+      "severity": "CRITICAL",
+      "component": {
+        "name": "org.apache.logging.log4j:log4j-core",
+        "ecosystem": "maven",
+        "lockedVersion": "2.14.1",
+        "dependencyType": "direct",
+        "dependencyPath": ["org.apache.logging.log4j:log4j-core"]
+      },
+      "advisory": {
+        "ghsaId": "GHSA-jfh8-c2jp-5v3q",
+        "cveId": "CVE-2021-44228",
+        "url": "https://github.com/advisories/GHSA-jfh8-c2jp-5v3q",
+        "affectedRange": ">= 2.0-beta9, < 2.15.0",
+        "recommendedTargetVersion": "2.17.1"
+      }
+    },
+    {
+      "id": "LOCAL-BDH-102",
+      "title": "Apache Commons Text variable interpolation can execute code (Text4Shell)",
+      "severity": "CRITICAL",
+      "component": {
+        "name": "org.apache.commons:commons-text",
+        "ecosystem": "maven",
+        "lockedVersion": "1.9",
+        "dependencyType": "direct",
+        "dependencyPath": ["org.apache.commons:commons-text"]
+      },
+      "advisory": {
+        "ghsaId": "GHSA-599f-7c49-w659",
+        "cveId": "CVE-2022-42889",
+        "url": "https://github.com/advisories/GHSA-599f-7c49-w659",
+        "affectedRange": ">= 1.5, < 1.10.0",
+        "recommendedTargetVersion": "1.10.0"
+      }
+    }
+  ]
+}
+
+## git log of the fix branch
+8e2a50d appmod(cve): upgrade commons-text to 1.10.0
+83c2515 appmod(cve): upgrade Log4j API and Core to 2.25.4
+24928e6 install the AppMod kit
+
+## the change in pom.xml
+-      <version>2.14.1</version>
++      <version>2.25.4</version>
+-      <version>2.14.1</version>
++      <version>2.25.4</version>
+-      <version>1.9</version>
++      <version>1.10.0</version>
+
+## .appmod/result.json written by the agent
+{
+  "status": "succeeded",
+  "jobType": "java-cve-remediation",
+  "build": {
+    "status": "passed",
+    "command": ".\\mvnw.cmd -B verify (final verifier; JDK 26)"
+  },
+  "tests": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0
+  },
+  "commits": [
+    "83c2515 appmod(cve): upgrade Log4j API and Core to 2.25.4",
+    "8e2a50d appmod(cve): upgrade commons-text to 1.10.0"
+  ],
+  "prepass": {
+    "kept": true,
+    "notes": "No prepass summary was present; no prepass changes were available."
+  },
+  "cvesFixed": [
+    "CVE-2021-44228",
+    "CVE-2022-42889"
+  ],
+  "cvesRemaining": [],
+  "requiresHumanReview": [
+    "Confirm whether the customer value logged by src/main/java/orders/OrderService.java is attacker-controlled or externally exposed; this remediation changed dependency versions only."
+  ],
+  "assumptions": [
+    "Used AppMod Java CVE validation recommendations: Log4j API/Core 2.25.4 (kept aligned) and Commons Text 1.10.0; post-change validation found no known CVEs in these coordinates.",
+    "The report's Log4j target 2.17.1 was superseded by the validator's safer current target 2.25.4.",
+    "OpenRewrite and direct Java/Maven shell commands were blocked by non-interactive command permissions; applied only these exact dependency version changes.",
+    "Public contracts and unrelated files remain unchanged."
+  ]
+}
+
+## Copilot's own event log of the session (~/.copilot/session-state/<session id>/events.jsonl), summarized
+model turns: 81
+agents: appmod-harness, dependency-security-advisor, explore, github-copilot-modernization:modernize, appmod-verifier
+tool calls: {"view":46,"skill":10,"task":7,"powershell":45,"rg":7,"update_todo":3,"glob":4,"apply_patch":12,"appmod-mcp-server-appmod-validate-cves-for-java":5,"appmod-mcp-server-appmod-build-java-project":3,"appmod-mcp-server-appmod-run-tests-for-java":2,"appmod-mcp-server-appmod-version-control":3,"appmod-mcp-server-appmod-report-event":1,"read_powershell":1}
+permission requests: 14, refused: 14
+results of the plugin's own tools:
+  appmod-validate-cves-for-java: The following dependencies have known CVEs that need to be fixed: - Dependency `org.apache.logging.log4j:log4j-core:2.14.1` → upgrade to **2.25.4** — 
+  appmod-validate-cves-for-java: No known CVEs that need to be fixed are found for the given dependencies.
+  appmod-validate-cves-for-java: No known CVEs that need to be fixed are found for the given dependencies.
+  appmod-validate-cves-for-java: The following dependencies have known CVEs that need to be fixed: - Dependency `org.apache.logging.log4j:log4j-core:2.14.1` → upgrade to **2.25.4** — 
+  appmod-build-java-project: Failed to detect or resolve JDK for the project at C:\bdh-fixture\orders-fix-ce8a085d. Please ensure JDK 17 is installed and properly configured on th
+  appmod-build-java-project: Build succeeded! There are no build errors in the project.
+  appmod-run-tests-for-java: All tests passed! There are no test errors/failures in the project.
+  appmod-build-java-project: Build succeeded! There are no build errors in the project.
+  appmod-run-tests-for-java: All tests passed! There are no test errors/failures in the project.
+  appmod-validate-cves-for-java: No known CVEs that need to be fixed are found for the given dependencies.

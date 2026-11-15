@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: subscriber-engine
+  datasource:
+    # Embedded H2 in file mode; only one process can open the file at a time.
+    url: jdbc:h2:file:${subscriber.data-dir}/subscriber
+    username: sa
+    password: ""
+
+server:
+  # Loopback unless an access token is configured (see the read API).
+  address: ${SUBSCRIBER_BIND_ADDRESS:127.0.0.1}
+
+subscriber:
+  data-dir: ${SUBSCRIBER_DATA_DIR:./data}
+  # Required: SUBSCRIBER_ALLOWED_ROOTS=C:/src,D:/work (comma separated). Reports and repositories must lie inside.
+  allowed-roots: ${SUBSCRIBER_ALLOWED_ROOTS:}
+  runner: ${SUBSCRIBER_RUNNER:auto}
+  # Where a fix session works: worktree (its own git worktree and branch) or none (the repository checkout). A subject can override it.
+  isolation: ${SUBSCRIBER_ISOLATION:worktree}
+  # The operator console: auto (only in a terminal), true, or false.
+  console:
+    enabled: ${SUBSCRIBER_CONSOLE:auto}
+  max-parallel: ${SUBSCRIBER_MAX_PARALLEL:1}
+  # The coding agent that runs a session: copilot (GitHub Copilot CLI, the default) or claude (Claude Code).
+  agent-tool: ${SUBSCRIBER_AGENT_TOOL:copilot}
+  claude:
+    command: ${SUBSCRIBER_CLAUDE_COMMAND:claude}
+  # The permission settings below apply to whichever tool runs; the neutral environment names win over the SUBSCRIBER_COPILOT_* ones.
+  copilot:
+    command: ${SUBSCRIBER_COPILOT_COMMAND:copilot}
+    # allow-all-tools (the default), ask, or allow-list (then the two lists below say what the agent may and may not do). Headless needs it set: allow-list, or allow-all-tools on purpose.
+    permission-mode: ${SUBSCRIBER_PERMISSION_MODE:${SUBSCRIBER_COPILOT_PERMISSION_MODE:}}
+    # Tool rules in the syntax of the tool that runs, comma separated: shell(git:*),write(C:/work/**) for the Copilot CLI; Bash(git *),Edit for Claude Code.
+    allowed-tools: ${SUBSCRIBER_ALLOWED_TOOLS:${SUBSCRIBER_COPILOT_ALLOWED_TOOLS:}}
+    denied-tools: ${SUBSCRIBER_DENIED_TOOLS:${SUBSCRIBER_COPILOT_DENIED_TOOLS:}}
+  nats:
+    url: ${NATS_URL:nats://localhost:4222}
+    token: ${NATS_TOKEN:}
+    user: ${NATS_USER:}
+    password: ${NATS_PASSWORD:}
+    credentials-file: ${NATS_CREDENTIALS_FILE:}
+  access:
+    token: ${SUBSCRIBER_ACCESS_TOKEN:}
+  subjects:
+    - subject: securityaudit.issuefixesAgent
+      source: Security audit
+      agent: ${SUBSCRIBER_AUDIT_AGENT:security-fixer}
+      # The repository is the third parent of the report: <repo>/.appmod/security-audit/issues.csv
+      report-location: .appmod/security-audit/issues.csv
+    - subject: coverity.issuefixesAgent
+      source: Coverity static-analysis
+      agent: ${SUBSCRIBER_COVERITY_AGENT:appmod-harness}
+      repository: ${SUBSCRIBER_COVERITY_REPOSITORY:}
+    - subject: bdh.issuefixesAgent
+      source: Black Duck Hub dependency-security
+      agent: ${SUBSCRIBER_BDH_AGENT:appmod-harness}
+      repository: ${SUBSCRIBER_BDH_REPOSITORY:}
