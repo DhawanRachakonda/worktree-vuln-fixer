@@ -54,4 +54,4 @@ Defects this work found by running it, fixed in the same change:
 ## Not covered
 
 A hosted git service, `gh`, `glab`, a real coding agent in this flow (the agent's behaviour has its own recorded runs in [../../docs/evidence.md](../../docs/evidence.md)),
-a terminal console (the real-run file uses the engine with its console off), and a Linux machine: this was run on Windows 11 with Docker Desktop (Linux engine). The `live` job in CI (Ubuntu) has not run yet, because nothing was pushed.
+a terminal console (the real-run file uses the engine with its console off), and a Linux machine: this was run on Windows 11 with Docker Desktop (Linux engine). The `live` job in CI (Ubuntu, Docker) has since run on GitHub in pull request 1 and passed (see ci-pull-request-1.txt).

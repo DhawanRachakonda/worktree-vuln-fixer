@@ -53,6 +53,7 @@ public class Verify {
         List<Check> checks = List.of(
                 new Check("kit: installer tests", root.resolve("kit"), List.of("java", "tests/installer/InstallerTests.java"), false),
                 new Check("kit: git step of appmod init tests", root.resolve("kit"), List.of("java", "tests/installer/GitStepTests.java"), false),
+                new Check("kit: appmod setup and start tests", root.resolve("kit"), List.of("java", "tests/setup/SetupStartTests.java"), true),
                 new Check("kit: security-audit tool tests", root.resolve("kit"), List.of("java", "tests/security-audit/ToolTests.java"), true),
                 new Check("kit: security-audit validator tests", root.resolve("kit"), List.of("java", "tests/security-audit/ValidatorTests.java"), true),
                 new Check("kit: security-fixer tool tests", root.resolve("kit"), List.of("java", "tests/security-fixer/ToolTests.java"), true),

@@ -16,13 +16,14 @@ opens a Copilot or Claude Code window to fix the issues -> you **review** the br
 
 - Git.
 - JDK 25 or later: the engine, the kit's tools and the validators all run on it. It is the only runtime of the kit and the engine.
-- A NATS server the engine can reach.
+- A NATS server the engine can reach. You do not have to install one: `appmod setup` (step 3) downloads the pinned `nats-server` if there is none, and `appmod start` (step 5) runs it.
 - Windows PowerShell (the window runner uses it).
 - The coding agent, signed in: Copilot CLI and/or Claude Code.
 
 `appmod init` (step 3) checks the machine and installs what is missing on Windows: Git, a portable JDK 25 and, **for GitHub Copilot only**, PowerShell 7, the Copilot CLI
 (WinGet) and the app-modernization plugin together with the Node.js 22 that plugin needs (its hooks run with `node` and its MCP server with `npx`; this is the one place
-Node is used). With `--tool claude` none of the Copilot parts and no Node is installed. It does not install NATS.
+Node is used). With `--tool claude` none of the Copilot parts and no Node is installed. `appmod init` works on one repository and does not install NATS or build the engine;
+`appmod setup` does that, once per machine.
 
 ## 2. Clone the project
 
@@ -30,9 +31,27 @@ Node is used). With `--tool claude` none of the Copilot parts and no Node is ins
 git clone https://github.com/DhawanRachakonda/worktree-vuln-fixer.git C:\Projects\worktree-vuln-fixer
 ```
 
-## 3. Install the kit into the repository you want to modernize
+## 3. Prepare the machine once, then install the kit into each repository
 
 `appmod.cmd` is in `kit\`.
+
+**Once per machine: `appmod setup`.** It finds a JDK 25 (the same way `appmod init` does, and offers a portable one if there is none), finds a `nats-server` on the PATH
+or downloads the pinned one into `%LOCALAPPDATA%\appmod\tools` (the SHA-256 of the download is checked against the value pinned in the kit, and a mismatch deletes the
+file and stops), builds the engine from this clone, and **asks two questions**: which folders hold your repositories (the engine will only accept reports from inside
+them) and which coding agent you use. It saves everything in `%LOCALAPPDATA%\appmod\machine.properties` (paths and those two answers, no secret) and offers to add the
+tools folder to your user PATH.
+
+```
+cd C:\Projects\worktree-vuln-fixer\kit
+appmod setup                                       # asks the two questions
+appmod setup --roots C:/src --tool claude --yes    # the same, with no questions (for scripts)
+appmod setup --check                               # changes nothing; says what is missing (exit 1 when something is)
+```
+
+Run it again whenever you add a folder or change the agent; it keeps your earlier answers as defaults. If the machine cannot reach GitHub, install `nats-server`
+yourself and put it on the PATH: `appmod setup` finds it. If there is no `engine` folder next to `kit` (the kit was copied alone), pass `--engine-jar <path>` for an engine built elsewhere.
+
+**For each repository: `appmod init`.**
 
 ```
 cd C:\Projects\worktree-vuln-fixer\kit
@@ -58,11 +77,29 @@ In the app repository:
 
 The report is written to `<repo>\.appmod\security-audit\issues.csv`.
 
-## 5. Start NATS
+## 5. Start NATS and the engine: `appmod start`
 
-Note its URL. The engine's default is `nats://localhost:4222`; change it with `NATS_URL`.
+```
+appmod start                # NATS in the background, the engine in this terminal (its console is this terminal)
+appmod start --nats         # only NATS, in this terminal (Ctrl+C stops it)
+appmod start --engine       # only the engine (it says when no NATS answers, and keeps retrying until one does)
+```
 
-## 6. Build and start the engine
+It reads what `appmod setup` saved, so it needs no environment variables and does not depend on your PATH.
+
+- **NATS** is bound to `127.0.0.1` only, so nothing on the network can publish to it. There is no token or TLS: a process on this machine could publish a report path, and
+  the engine's own checks (the file must exist, lie inside your folders, and have a git repository around it) are what limit that.
+- If a NATS server **already answers** on the port (4222, or the port you gave with `appmod setup --nats-port`), it is reused and left running when the engine ends. If the port is open but is not NATS,
+  `start` stops and names the port. A NATS that `start` itself began is stopped when the engine ends (also when you close the window); its log is `%LOCALAPPDATA%\appmod\run\nats.log`.
+- When the engine ends, `start` returns the engine's exit status. The engine runs headless (no console) when its input is not a terminal.
+- Run `doctor` first in the engine's console. It checks the tool command, NATS, Git (per repository) and the roots.
+
+If `start` says there is no configuration, or a program it names is gone, run `appmod setup` again.
+
+## 6. The manual way (what `appmod setup` and `appmod start` do for you)
+
+Use this when you want to choose the NATS server yourself, or run the engine under another launcher. Start any NATS server (its URL is `nats://localhost:4222` by
+default; change it with `NATS_URL`), then:
 
 ```
 cd C:\Projects\worktree-vuln-fixer\engine

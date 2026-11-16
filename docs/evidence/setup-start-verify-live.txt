@@ -1,0 +1,524 @@
+Change: appmod-setup-and-start. Command: java scripts/Verify.java --live (NATS_SERVER_EXE not set: the live tests started their NATS server in Docker). Windows 11, JDK 26, 2026-11-16.
+The time shown for 'engine: build and tests' (20837 s) is wrong as a measure: the computer went to sleep during that step and the clock kept running. The step itself takes about 15 minutes (933 s in the earlier full run).
+---- output of the command ----
+== kit: installer tests
+  ok    default: nothing under .claude and no CLAUDE.md
+  ok    default: the same files and bytes as --tool copilot
+  ok    default: every .github source file is placed byte for byte
+  ok    default: copilot-instructions.md holds the kit block
+  ok    unknown tool: exit code 2
+  ok    unknown tool: names the allowed values
+  ok    unknown tool: nothing was written
+  ok    --tool without a value is refused too
+  ok    claude: security-fixer has the tools mapped
+  ok    claude: no user-invocable key
+  ok    claude: same name and description line
+  ok    claude: the body is the source's apart from the rewritten paths
+  ok    claude: the tools of the Java tools stay at .github/appmod/tools
+  ok    claude: a read-only agent gets no edit tools
+  ok    claude: the audit agent can call the intel service's tool (an agent with a tool list cannot use an MCP tool that is not named)
+  ok    claude: nothing under .github/agents or prompts
+  ok    front door: no appmod-harness agent for Claude Code
+  ok    front door: the report says why
+  ok    unknown tool name: the install fails
+  ok    unknown tool name: names the agent and the tool
+  ok    unknown tool name: nothing was written for Claude Code
+  ok    unknown tool name: Copilot installs do not care
+  ok    mcp tools: the install works
+  ok    mcp tools: server/* becomes mcp__server, server/tool becomes mcp__server__tool, once
+  ok    skills: the security-audit skill is in .claude/skills
+  ok    skills: every kit skill is placed
+  ok    skills: a validator is copied byte for byte, with the shared Json.java beside it
+  ok    rules: harness rules have no path restriction
+  ok    rules: sql rules are restricted to sql paths
+  ok    tools: the Java tools and the rulebook are installed
+  ok    memory: CLAUDE.md names the agents and is marked
+  ok    stale paths: no Claude Code file refers to .github/agents, skills or instructions
+  ok    existing CLAUDE.md: the content is kept and the block appended
+  ok    existing CLAUDE.md: a second run appends nothing
+  ok    both: the Copilot files are there
+  ok    both: the Claude Code files are there
+  ok    both: the Copilot agent file is still the source's
+  ok    agents: security-fixer keeps the rule to never push (Copilot and Claude Code)
+  ok    agents: security-fixer says the engine may push afterwards, in both tools
+  ok    agents: security-fixer says how the base is chosen in the direct flow and that the person pushes, in both tools
+  ok    agents: appmod-harness keeps never push and says the same about the base
+  ok    agents: the harness instructions keep the rule and add the engine sentence
+  ok    second run: nothing changed
+  ok    second run: every line is unchanged, merged or a Copilot-only note
+  ok    edited file: kept without --force
+  ok    edited file: the report says it was skipped
+  ok    edited file: --force restores the rendered file
+  ok    dry run: nothing is written
+  ok    dry run: the report lists what would be created
+  ok    mcp: both files name the same server package and version
+  ok    mcp: .mcp.json has the Claude Code shape
+  ok    mcp: nothing without --with-mcp
+  ok    user install: exit 0
+  ok    user install: agents and skills in ~/.claude
+  ok    user install: nothing in ~/.copilot and nothing written to the kit folder
+  ok    user install: the report says rules are repository-level
+  ok    claude-only: ValidateRun.java finds the skill in .claude/skills without --skill-dir
+  ok    record: names the tool
+  ok    record: holds the SHA-256 of a placed file
+  ok    record: lists the Java tools too
+  ok    record: does not list the merged CLAUDE.md or the record itself
+  ok    record: is under .appmod, which the installer git-ignores
+  ok    record: a user install writes none
+  ok    upgrade without a record: exit 2 and a message that names the record
+  ok    upgrade without a record: nothing was written
+  ok    upgrade: a dry run says what it would do and changes nothing
+  ok    upgrade: an untouched file gets the newer content
+  ok    upgrade: an edited file is kept and reported as edited
+  ok    upgrade: the record has the new hash for the upgraded file and the old one for the edited file
+  ok    upgrade: a second run changes nothing and still keeps the edit
+  ok    upgrade: --force also replaces the edited file
+  ok    plain rerun: the changed file is kept and reported as edited, not as unknown
+  ok    plain rerun: a later --upgrade still upgrades the file nobody edited
+  ok    upgrade: a tool that differs from the record is refused
+  ok    upgrade: the recorded tool is used when none is given
+  ok    upgrade: --user is refused
+
+76 passed, 0 failed
+== kit: git step of appmod init tests
+  ok    exits 0 and installs the kit
+  ok    shows the detected remote default and the branches
+  ok    shows the checks
+  ok    the chosen branch is saved
+  ok    the .appmod folder is ignored by git, so the setting is not committed
+  ok    the person's files are untouched
+  ok    Enter accepts the detected default
+  ok    no terminal: exits 0 and installs the kit
+  ok    no terminal: saves nothing
+  ok    no terminal: says which branch would be used
+  ok    unreachable remote: the kit is installed and the exit status is success
+  ok    unreachable remote: the warning names what is lost
+  ok    unreachable remote: the credentials in the URL are never printed
+  ok    unreachable remote: the branch can still be saved
+  ok    --upgrade: exits 0
+  ok    --upgrade: the saved file is untouched and no question is asked
+  ok    a plain re-run keeps a saved branch and does not overwrite it
+  ok    a branch that does not exist is not saved and the kit is still installed
+  ok    an answer that is not a branch name is refused
+  ok    a folder that is not a git repository installs and says the git step was skipped
+  ok    an unreadable saved setting is reported and the kit is installed
+  ok    --dry-run: no git step and nothing written
+
+22 passed, 0 failed
+== kit: appmod setup and start tests
+  ok    setup: exits 0 and downloads the pinned nats-server
+  ok    setup: the archive is deleted and only the program is unpacked
+  ok    setup: the configuration names the JDK, the program, the engine, the folder and the tool
+  ok    setup: it names the folder for the PATH and writes it to the file appmod.cmd reads, and never changes the PATH itself
+  ok    setup: no secret is stored
+  ok    setup run again: exits 0, downloads nothing and keeps the earlier answers
+  ok    setup run again: the configuration is the same
+  ok    setup: a wrong hash stops with both hashes, deletes the download and unpacks nothing
+  ok    setup: nothing is saved after a failed download
+  ok    setup: an archive entry that leaves the folder stops everything
+  ok    setup: an unreachable address is named, with the manual alternative
+  ok    setup: a version without a pinned hash is refused
+  ok    setup: a relative folder by flag stops and saves nothing
+  ok    setup: a missing folder is named
+  ok    setup: --yes cannot guess the folders on a first run
+  ok    setup: a tool other than copilot or claude is refused
+  ok    setup: it asks, refuses a bad answer, asks again and saves the good ones
+  ok    setup: a failed run leaves the earlier configuration as it was
+  ok    setup --check: exits 1 when something is missing, says what, and writes nothing
+  ok    init: a repository inside the folders given to setup gets no warning
+  ok    init: a repository outside them gets a warning naming both, and the kit is still installed
+  ok    init: with no machine configuration nothing is said about folders
+  ok    appmod.cmd --help lists setup and start
+  ok    appmod.cmd setup --check runs the setup program: exit 1 when something is missing, nothing written
+  ok    appmod.cmd start hands its options to the launcher (an unknown one is refused with exit 2)
+  ok    appmod.cmd start without a configuration says to run appmod setup
+  ok    setup: no engine folder next to the kit is said, with --engine-jar as the way out
+  ok    setup: a nats-server already on the PATH is used and nothing is downloaded
+  ok    setup: the engine is built with the Gradle wrapper and the recorded JDK, and its program is saved
+  ok    setup: a failed engine build shows the build's own message, saves nothing and exits with an error
+  ok    start: NATS is started, the engine runs in the foreground, and it ends with the engine's exit status
+  ok    start: the engine got only the saved settings
+  ok    start: NATS listens on the loopback address only
+  ok    start: a NATS it started is stopped when the engine ends, and the process id file is gone
+  ok    start: the log file of NATS exists
+  ok    start: a NATS that already answers is reused, not started again
+  ok    start: a NATS it did not start is still running afterwards
+  ok    start --engine with a NATS running elsewhere: only the engine starts and it connects to that server
+  ok    start: without a configuration nothing starts and it says to run appmod setup
+  ok    start: a program named in the configuration that is gone is named
+  ok    start: something else on the port stops it and names the port
+  ok    start: an unknown option is refused with the known ones
+  ok    start: a process id file whose process is gone is removed and the start goes on
+  ok    start: a NATS that never answers is given up on after 15 seconds, stopped, and the exit status is not 0
+  ok    start --engine: says that no NATS answers, and runs the engine anyway
+  ok    start --nats: a server listens on the loopback address and no engine is started
+  ok    start --nats: refuses when the port is already taken
+  ok    start --nats: ending the command ends the server
+
+48 passed, 0 failed
+== kit: security-audit tool tests
+PASS  fixture run exits 0
+PASS  CSV starts with a UTF-8 BOM
+PASS  header has the 17 documented columns in order
+PASS  one row per evidence location of confirmed and needs_validation findings (4 rows + header)
+PASS  every row has 17 cells
+PASS  rejected findings are absent
+PASS  minimum columns are filled on every row
+PASS  sorted: critical, high, high, then the unproven issue
+PASS  high rows are ordered by file then line
+PASS  unproven row: verdict, empty severity and confidence, blockers and plan present
+PASS  confirmed row carries remediation and no blockers
+PASS  attack class is joined from the coverage ledger (several classes joined)
+PASS  commit comes from run-metadata source_ref
+PASS  generated_at is a UTC timestamp
+PASS  trace summarises entry point to sink
+PASS  last stdout line is the JSON summary with the counts
+PASS  the tool wrote only issues.csv into the output directory
+PASS  line break and non-ASCII text survive the round trip
+PASS  commas and double quotes survive the round trip
+PASS  quoted code in a note survives
+PASS  line ends are CRLF
+PASS  no coverage ledger: the run still succeeds with a warning
+PASS  no coverage ledger: attack_class is empty and the rows are otherwise complete
+PASS  a title starting with '=' is written with a leading single quote
+PASS  run with title '+1+1' succeeds
+PASS  title '+1+1' is neutralized
+PASS  run with title '-2+3' succeeds
+PASS  title '-2+3' is neutralized
+PASS  run with title '@SUM(1)' succeeds
+PASS  title '@SUM(1)' is neutralized
+PASS  run with title '<TAB>=cmd' succeeds
+PASS  title '<TAB>=cmd' is neutralized
+PASS  run with title ' =1+1' succeeds
+PASS  title ' =1+1' is neutralized
+PASS  line numbers are never prefixed
+PASS  missing line number names the finding
+PASS  non-integer line is refused
+PASS  line of zero is refused
+PASS  missing path names the finding
+PASS  absolute path is refused
+PASS  parent reference in a path is refused
+PASS  unknown verdict is refused
+PASS  unknown field is refused (schema drift)
+PASS  invalid severity is refused
+PASS  duplicate fingerprint is refused
+PASS  top-level object instead of array is refused
+PASS  malformed JSON is refused
+PASS  duplicate JSON key is refused
+PASS  missing findings.json fails with exit 3 and writes nothing
+PASS  a line equal to the file's last line is accepted
+PASS  summary says the locations were checked
+PASS  a line past the end of the file is refused with file, line and file length
+PASS  a trace line past the end of the file is refused
+PASS  a file that is not in the repository is refused
+PASS  every bad location is listed in one run
+PASS  a directory in place of a source file is refused
+PASS  a repository directory that does not exist is refused
+SKIP  symlink escape check: symbolic links cannot be created here (java.nio.file.AccessDeniedException: C:\Users\Dhawan\AppData\Local\Temp\security-audit-tests-3709807733666420658\repo-symlink\src\main\java\app\UserDao.java)
+PASS  no findings: exit 0
+PASS  no findings: header row only, with BOM and CRLF
+PASS  no findings: summary counts are zero
+PASS  no arguments: exit 2 with usage
+PASS  missing --out: exit 2
+PASS  missing --repo: exit 2 and nothing written
+PASS  valid run: exit 0 and valid=true
+PASS  valid run: no reduced mode on any operating system
+PASS  rule violation fails with the rule's message, not a fallback
+PASS  a directory in place of findings.json fails
+PASS  missing ledger fails
+PASS  malformed JSON fails and diagnostics hold no raw control characters
+PASS  no run directory: exit 2
+PASS  CodeGraph.java starts as a single source file on this JDK and says how to use it
+PASS  DependencyAdvisor.java starts as a single source file on this JDK and says how to use it
+PASS  FindingsToCsv.java starts as a single source file on this JDK and says how to use it
+PASS  IssueList.java starts as a single source file on this JDK and says how to use it
+PASS  ValidateRun.java starts as a single source file on this JDK and says how to use it
+
+75 passed, 0 failed, 1 skipped
+== kit: security-audit validator tests
+PASS  the three validator sources compile together
+PASS  findings: 365 cases recorded from the original give the same exit code, output and errors
+PASS  ledger: 152 cases recorded from the original give the same exit code, output and errors
+PASS  findings: invalid UTF-8 is refused
+PASS  findings: an overlong UTF-8 sequence is refused
+PASS  findings: a file of exactly the size limit is read
+PASS  findings: a file one byte over the limit is refused
+PASS  findings: a directory is not a regular file
+PASS  findings: a missing file is said to be unreadable
+SKIP  findings: a symbolic link is refused (this account cannot create symbolic links: C:\Users\Dhawan\AppData\Local\Temp\validator-tests-2745425499641769716\link-findings.json)
+PASS  findings: no argument prints the usage and exits 1
+PASS  ledger: invalid UTF-8 is refused
+PASS  ledger: an overlong UTF-8 sequence is refused
+PASS  ledger: a file of exactly the size limit is read
+PASS  ledger: a file one byte over the limit is refused
+PASS  ledger: a directory is not a regular file
+PASS  ledger: a missing file is said to be unreadable
+SKIP  ledger: a symbolic link is refused (this account cannot create symbolic links: C:\Users\Dhawan\AppData\Local\Temp\validator-tests-2745425499641769716\link-ledger.json)
+PASS  ledger: no argument prints the usage and exits 1
+PASS  a number prints as JavaScript prints it: 0
+PASS  a number prints as JavaScript prints it: 0
+PASS  a number prints as JavaScript prints it: 1
+PASS  a number prints as JavaScript prints it: -1.5
+PASS  a number prints as JavaScript prints it: 100
+PASS  a number prints as JavaScript prints it: 1e+21
+PASS  a number prints as JavaScript prints it: 100000000000000000000
+PASS  a number prints as JavaScript prints it: 1.5e-7
+PASS  a number prints as JavaScript prints it: 0.000001
+PASS  a number prints as JavaScript prints it: 0.1
+PASS  a number prints as JavaScript prints it: 5e-324
+PASS  a number prints as JavaScript prints it: 123456789012345680000
+PASS  a number prints as JavaScript prints it: 1.7976931348623157e+308
+PASS  a number prints as JavaScript prints it: 2.5
+PASS  stringify escapes quotes, backslashes and controls
+PASS  stringify writes a lone surrogate as an escape
+PASS  stringify keeps a surrogate pair
+PASS  trim removes a no-break space and a byte order mark, as JavaScript does
+PASS  trim keeps a zero-width space, as JavaScript does
+PASS  a right-to-left override in a message is shown as an escape
+PASS  a tag character beyond the basic plane is shown as an escape
+PASS  a lone surrogate in a message is shown as an escape
+PASS  an ordinary accented letter is left alone
+PASS  object keys list integer-like keys first, ascending, as JavaScript does
+PASS  a duplicate key keeps the last value
+PASS  a trailing comma is a syntax error
+PASS  java ValidateFindings.java <file>: a valid file passes (the schema is found next to the source)
+PASS  java ValidateCoverageLedger.java <file>: a valid file passes
+PASS  an invalid file exits 1 with the rule's message and a count
+PASS  the schema is found when the folder has spaces in its name
+PASS  a missing schema is reported, not ignored
+PASS  no argument: usage and exit 1
+PASS  ValidateRun: a valid run exits 0, says PASS twice and valid:true
+PASS  ValidateRun: there is no weaker mode on any operating system
+PASS  ValidateRun: a real validation error fails the run with the rule's message
+PASS  ValidateRun: a missing file fails, it is never skipped
+PASS  ValidateRun: no run directory is a usage error (exit 2)
+PASS  ValidateRun: an unknown option is a usage error (exit 2)
+PASS  ValidateRun: a missing run directory is a usage error (exit 2)
+PASS  ValidateRun: --skill-dir names the folder of the validators
+
+57 checks, 0 failed
+== kit: security-fixer tool tests
+  ok    a valid audit CSV exits 0
+  ok    the heading counts issues, locations, verdicts and names the audited commit
+  ok    order: critical, high, medium, then the unproven issue
+  ok    rows with one fingerprint are one issue with all its locations, in file order of the rows
+  ok    an issue is listed once
+  ok    equal severity keeps the order of first appearance
+  ok    a confirmed issue comes before an unproven one whatever their severities
+  ok    the audited commit is shown for: bare id
+  ok    --json carries commit and dirty for: bare id
+  ok    the audited commit is shown for: id and clean flag as the audit tool writes it
+  ok    --json carries commit and dirty for: id and clean flag as the audit tool writes it
+  ok    the audited commit is shown for: id and dirty flag
+  ok    --json carries commit and dirty for: id and dirty flag
+  ok    the audited commit is shown for: something that is not a commit
+  ok    --json carries commit and dirty for: something that is not a commit
+  ok    the id is what --json calls the commit when the cell holds the labelled form
+  ok    a quoted title with a comma stays one title
+  ok    commas, doubled quotes and a line break inside one cell stay in one value
+  ok    the guard quote in front of a formula-looking cell is taken off
+  ok    a quote that guards nothing is kept
+  ok    a file without the byte order mark reads the same
+  ok    --json exits 0
+  ok    --json prints one JSON document on one line
+  ok    --json carries the commit, the row count and both issues in order
+  ok    --json escapes quotes, line breaks and tabs
+  ok    --json is valid JSON with the expected content
+  ok    a missing column: exit 2, prints no issue, names the problem
+  ok    several missing columns: exit 2, prints no issue, names the problem
+  ok    a line that is not a number: exit 2, prints no issue, names the problem
+  ok    a zero line: exit 2, prints no issue, names the problem
+  ok    an empty file: exit 2, prints no issue, names the problem
+  ok    a header and no rows: exit 2, prints no issue, names the problem
+  ok    a JSON file that is not a CSV: exit 2, prints no issue, names the problem
+  ok    a text file that is not a CSV: exit 2, prints no issue, names the problem
+  ok    an unknown verdict: exit 2, prints no issue, names the problem
+  ok    an unknown severity: exit 2, prints no issue, names the problem
+  ok    a row with the wrong number of cells: exit 2, prints no issue, names the problem
+  ok    rows of one issue that disagree about the verdict: exit 2, prints no issue, names the problem
+  ok    a quoted cell that never closes: exit 2, prints no issue, names the problem
+  ok    a quote in the middle of a cell: exit 2, prints no issue, names the problem
+  ok    a row without a fingerprint: exit 2, prints no issue, names the problem
+  ok    a file that does not exist: exit 2, prints no issue, names the problem
+  ok    a control character in a rejected value is not echoed
+  ok    an error in a late row prints no issue at all
+  ok    usage error for []: exit 2 and the usage line
+  ok    usage error for [--json]: exit 2 and the usage line
+  ok    usage error for [a.csv, --wat]: exit 2 and the usage line
+  ok    usage error for [a.csv, b.csv, c.csv]: exit 2 and the usage line
+  ok    a very large cell is cut with a marker instead of failing
+  ok    the audit writer produces the fixture CSV
+  ok    IssueList reads the audit writer's CSV
+  ok    every issue and location of the fixture comes back: 3 issues, 4 locations, 2 confirmed and 1 unproven
+  ok    the audit's order is kept: critical first, the unproven issue last
+  ok    the fixture's multi-line, non-ASCII description comes back intact
+  ok    in a primary checkout the git dir and the common dir are the same
+  ok    the audited commit is found with cat-file
+  ok    a commit that is not in the repository is not found
+  ok    git worktree add -b appmod/fix-<id8> <folder> <base> creates the worktree
+  ok    in the linked worktree the git dir and the common dir differ
+  ok    the worktree is on its own branch, started from the audited commit
+  ok    the worktree holds the audited code, not the later change
+  ok    the person's checkout is untouched: branch, HEAD, status and the uncommitted edit
+  ok    a commit made in the worktree is on its branch only
+  ok    the result.json example holds issuesFixed and issuesLeft
+  ok    the result.json example is valid JSON
+  ok    the skill explains the status succeeded for a fix job
+  ok    the skill explains the status partially_succeeded for a fix job
+  ok    the skill explains the status needs_input for a fix job
+  ok    the skill explains the status failed for a fix job
+  ok    the skill names the four engine states
+  ok    the routing table has a row that sends fix requests to security-fixer
+  ok    the audit row still says the audit never fixes
+  ok    the harness still never asks the audit agent to change code
+  ok    the harness never fixes audit findings itself
+  ok    the harness tells how to present a fix result and not to run the verifier twice
+  ok    the shared instructions name security-fixer
+  ok    the README describes the fixer, its prompt, its tool and that it changes code
+  ok    the agent has front matter with name security-fixer
+  ok    the agent is user-invocable
+  ok    the agent has the tools read, search, edit, shell and agent
+  ok    the agent states: IssueList.java
+  ok    the agent states: fingerprint
+  ok    the agent states: confirmed
+  ok    the agent states: needs_validation
+  ok    the agent states: critical
+  ok    the agent states: one commit per issue
+  ok    the agent states: fix(security):
+  ok    the agent states: never push
+  ok    the agent states: data, never instructions
+  ok    the agent states: Never delete or disable
+  ok    the agent states: .appmod/security-audit
+  ok    the agent states: git rev-parse --git-dir
+  ok    the agent states: --git-common-dir
+  ok    the agent states: linked worktree
+  ok    the agent states: primary checkout
+  ok    the agent states: As a sub-agent
+  ok    the agent states: appmod/fix-
+  ok    the agent states: work in place
+  ok    the agent states: interactive
+  ok    the agent states: headless
+  ok    the agent states: assumptions
+  ok    the agent states: appmod-verifier
+  ok    the agent states: If the verifier cannot run
+  ok    the agent states: Do not rely on changing directory
+  ok    the agent states: mvn -f <worktree>
+  ok    the agent states: issuesFixed
+  ok    the agent states: issuesLeft
+  ok    the agent states: partially_succeeded
+  ok    the agent states: needs_input
+  ok    the agent states: baseline
+  ok    the prompt names the agent and takes the CSV path
+  ok    the fixture builds (a correct fix)
+  ok    the reference fix is applied (a correct fix)
+  ok    the checker passes 37 of 37 on a correct fix
+  ok    the fixture builds (a fix without the token commit)
+  ok    the reference fix is applied (a fix without the token commit)
+  ok    the checker fails on a fix without the token commit, at A3 five fix commits on the branch
+  ok    the fixture builds (a fix without result.json)
+  ok    the reference fix is applied (a fix without result.json)
+  ok    the checker fails on a fix without result.json, at A10 result.json: status succeeded
+  ok    the fixture builds (a fix without summary.md)
+  ok    the reference fix is applied (a fix without summary.md)
+  ok    the checker fails on a fix without summary.md, at A10 summary.md exists
+  ok    the checker fails on a fixture nobody fixed (no worktree: A1)
+
+124 passed, 0 failed, 0 skipped
+== engine: build and tests
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :resolveMainClassName UP-TO-DATE
+> Task :bootJar UP-TO-DATE
+> Task :jar UP-TO-DATE
+> Task :assemble UP-TO-DATE
+> Task :compileTestJava UP-TO-DATE
+> Task :processTestResources UP-TO-DATE
+> Task :testClasses UP-TO-DATE
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+> Task :test
+
+2026-11-16T06:46:22.471+05:30  INFO 45400 --- [subscriber-engine] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-15 - Shutdown initiated...
+2026-11-16T06:46:22.472+05:30  INFO 45400 --- [subscriber-engine] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-15 - Shutdown completed.
+2026-11-16T06:46:22.475+05:30  INFO 45400 --- [subscriber-engine] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-16 - Shutdown initiated...
+2026-11-16T06:46:22.492+05:30  INFO 45400 --- [subscriber-engine] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-16 - Shutdown completed.
+2026-11-16T06:46:22.496+05:30  INFO 45400 --- [subscriber-engine] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-28 - Shutdown initiated...
+2026-11-16T06:46:22.496+05:30  INFO 45400 --- [subscriber-engine] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-28 - Shutdown completed.
+
+> Task :check
+> Task :build
+
+BUILD SUCCESSFUL in 5h 47m 16s
+8 actionable tasks: 1 executed, 7 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.9.0/userguide/configuration_cache_enabling.html
+== intel-service: build and tests
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :resolveMainClassName UP-TO-DATE
+> Task :bootJar UP-TO-DATE
+> Task :jar UP-TO-DATE
+> Task :assemble UP-TO-DATE
+> Task :compileTestJava UP-TO-DATE
+> Task :processTestResources UP-TO-DATE
+> Task :testClasses UP-TO-DATE
+> Task :test UP-TO-DATE
+> Task :check UP-TO-DATE
+> Task :build UP-TO-DATE
+
+BUILD SUCCESSFUL in 1s
+8 actionable tasks: 8 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.9.0/userguide/configuration_cache_enabling.html
+== openspec: validate specs --strict
+- Validating...
+✓ spec/agent-tool-selection
+  ℹ [INFO] requirements[0]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[1]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[3]: Requirement text is very long (>500 characters). Consider breaking it down.
+✓ spec/fix-session-worktrees
+  ℹ [INFO] requirements[0]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[1]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[2]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[6]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[7]: Requirement text is very long (>500 characters). Consider breaking it down.
+✓ spec/headless-permission-guard
+  ℹ [INFO] requirements[0]: Requirement text is very long (>500 characters). Consider breaking it down.
+✓ spec/issue-fix-subscriber
+  ℹ [INFO] requirements[0]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[2]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[8]: Requirement text is very long (>500 characters). Consider breaking it down.
+✓ spec/kit-install-targets
+  ℹ [INFO] requirements[1]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[2]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[4]: Requirement text is very long (>500 characters). Consider breaking it down.
+✓ spec/kit-java-runtime
+  ℹ [INFO] requirements[0]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[1]: Requirement text is very long (>500 characters). Consider breaking it down.
+✓ spec/report-publishing
+  ℹ [INFO] requirements[0]: Requirement text is very long (>500 characters). Consider breaking it down.
+✓ spec/security-audit-agent
+  ℹ [INFO] requirements[2]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[3]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[6]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[9]: Requirement text is very long (>500 characters). Consider breaking it down.
+✓ spec/security-fixer-agent
+  ℹ [INFO] requirements[0]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[2]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[5]: Requirement text is very long (>500 characters). Consider breaking it down.
+✓ spec/vulnerability-intel
+  ℹ [INFO] requirements[5]: Requirement text is very long (>500 characters). Consider breaking it down.
+  ℹ [INFO] requirements[9]: Requirement text is very long (>500 characters). Consider breaking it down.
+Totals: 10 passed, 0 failed (10 items)
+
+Verification summary
+  kit: installer tests                     PASSED                       108s
+  kit: git step of appmod init tests       PASSED                       139s
+  kit: appmod setup and start tests        PASSED                       127s
+  kit: security-audit tool tests           PASSED                       123s
+  kit: security-audit validator tests      PASSED                       47s
+  kit: security-fixer tool tests           PASSED                       284s
+  engine: build and tests                  PASSED                       20837s
+  intel-service: build and tests           PASSED                       3s
+  openspec: validate specs --strict        PASSED                       16s
+READY: every check passed or was skipped for a stated reason.
+verify-exit=0

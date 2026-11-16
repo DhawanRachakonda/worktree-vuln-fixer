@@ -36,7 +36,7 @@ and `init` would ask for machine settings again for every repository.
 SHA-256, safe zip extraction, process control and the readiness check are far simpler and testable in Java than in batch, and the kit's
 tests are Java. `appmod.cmd` only parses the command and calls the program. The JDK detection stays in the batch file (it must run before any
 Java exists); setup receives the result as an argument and records it. The user PATH is changed only by the existing persistence step: the
-setup program prints the folders to add as one final machine-readable line (`PATH_ADDITIONS=...`), and `appmod.cmd` hands it to its existing
+setup program writes the folders to add to a file that `appmod.cmd` names with `--path-additions-file` (content `;dir;dir`; a printed line would hide the prompts), and `appmod.cmd` hands it to its existing
 `:persist_paths`, so there is one implementation of that and the `--persist-path` / `--no-persist` flags behave the same.
 
 **3. One machine configuration file: `%APPMOD_HOME%\machine.properties`.** A Java properties file (no parser to write, comments allowed, a

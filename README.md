@@ -75,7 +75,7 @@ every session is recorded so you can see what happened, reopen the conversation,
 
 ## Quick start
 
-Needs a JDK 25, Git, a NATS server, and Copilot CLI or Claude Code. The full walkthrough, step by step, is [`engine/docs/setup.md`](engine/docs/setup.md).
+Needs Git and Copilot CLI or Claude Code; `appmod setup` finds or installs the JDK 25 and a NATS server. The full walkthrough, step by step, is [`engine/docs/setup.md`](engine/docs/setup.md). (The manual way, with your own NATS server and `java -jar`, is described there too.)
 
 ```
 # 0. (optional but recommended) the latest vulnerability intelligence for the audit
@@ -94,25 +94,24 @@ leads to check the repository against, never as findings by themselves. It never
 
 ```
 
-# 1. install the kit (agents, skills, tools) into the repository you want fixed
+# 1. once per machine: finds JDK 25, downloads the pinned nats-server if you have none, builds the engine,
+#    and asks which folders hold your repositories and which agent you use (or give --roots and --tool)
 cd kit
+appmod setup --roots C:/src --tool claude
+
+# 2. install the kit (agents, skills, tools) into each repository you want fixed
 appmod init C:\src\my-repo --tool claude          # or copilot, or both
 
-# 2. audit it (or skip this and use your own scanner's report)
+# 3. audit it (or skip this and use your own scanner's report)
 cd C:\src\my-repo
 claude --agent security-audit                      # writes .appmod\security-audit\issues.csv
 
-# 3. start the engine
-cd engine
-gradlew.bat bootJar
-set SUBSCRIBER_ALLOWED_ROOTS=C:/src
-set SUBSCRIBER_AGENT_TOOL=claude
-set SUBSCRIBER_PERMISSION_MODE=allow-list
-set SUBSCRIBER_ALLOWED_TOOLS=Read,Edit,Write,Grep,Glob,Agent,Bash(git *),Bash(java *)
-set SUBSCRIBER_DENIED_TOOLS=Bash(curl *),Bash(git push *)
-java -jar build\libs\subscriber-engine-0.1.0-SNAPSHOT.jar
+# 4. start NATS (127.0.0.1 only) and the engine; the engine's console is this terminal
+#    (optional first: set SUBSCRIBER_PERMISSION_MODE=allow-list and SUBSCRIBER_ALLOWED_TOOLS / SUBSCRIBER_DENIED_TOOLS)
+cd C:\Projects\worktree-vuln-fixer\kit
+appmod start                                       # appmod start --nats / --engine start just one
 
-# 4. in the engine's console ($>)
+# 5. in the engine's console ($>)
 $> doctor
 $> publish C:\src\my-repo\.appmod\security-audit\issues.csv
 $> sessions            # QUEUED -> IN_PROGRESS -> DONE
@@ -187,7 +186,7 @@ Copilot-only plugin); the agent's choices vary from run to run, which is why the
 
 ## Requirements
 
-JDK 25 or later, Git, a NATS server, GitHub Copilot CLI and/or Claude Code (signed in). Windows is the tested platform; the engine also built and passed its tests on Linux (WSL).
+JDK 25 or later and a NATS server (`appmod setup` finds or installs both on Windows), Git, GitHub Copilot CLI and/or Claude Code (signed in). Windows is the tested platform; the engine also built and passed its tests on Linux (WSL).
 For the Copilot app modernization route: Node.js 22 and the plugin (`appmod init` installs both).
 
 ## License

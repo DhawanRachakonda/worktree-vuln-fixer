@@ -1,0 +1,12 @@
+GitHub Actions record for the pull request that added the source-branch, push and pull-request features (DhawanRachakonda/worktree-vuln-fixer, pull request 1). Read with: gh run view <id> --json jobs, on 2026-11-15/16.
+
+== run 43747453380: pull_request on source-branch-and-pull-request, completed/failure, started 2026-11-15T18:33:45Z, https://github.com/DhawanRachakonda/worktree-vuln-fixer/actions/runs/43747453380
+   live: completed/failure  (2026-11-15T18:33:47Z to 2026-11-15T18:40:38Z)
+   verify (windows-latest): completed/success  (2026-11-15T18:33:48Z to 2026-11-15T18:43:46Z)
+   verify (ubuntu-latest): completed/failure  (2026-11-15T18:33:47Z to 2026-11-15T18:42:16Z)
+== run 43748637585: pull_request on source-branch-and-pull-request, completed/success, started 2026-11-15T18:46:31Z, https://github.com/DhawanRachakonda/worktree-vuln-fixer/actions/runs/43748637585
+   verify (windows-latest): completed/success  (2026-11-15T18:46:35Z to 2026-11-15T19:00:32Z)
+   verify (ubuntu-latest): completed/success  (2026-11-15T18:46:33Z to 2026-11-15T18:52:41Z)
+   live: completed/success  (2026-11-15T18:46:33Z to 2026-11-15T18:53:44Z)
+
+Notes: run 43747453380 (first run of the branch) failed on both Ubuntu jobs because of one flaky test of mine (BranchPublisherTest.aRemoteThatRefusesTheBranch...: two repositories made in the same second hold an identical first commit, so the push was a fast-forward and was accepted); Windows passed. The test was made independent of timing; run 43748637585 then passed on all three jobs, including the new Ubuntu job 'live' that runs the live NATS tests in Docker.

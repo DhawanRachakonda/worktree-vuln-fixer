@@ -9,6 +9,8 @@ PowerShell 7, the Copilot CLI through WinGet, the app-modernization plugin and t
 With `--tool claude` nothing of the Copilot side (and no Node) is installed:
 
 ```
+appmod setup [--roots C:/src] [--tool claude]   # once per machine: JDK, nats-server, the engine, your folders and agent (see engine/docs/setup.md)
+appmod start [--nats|--engine]                  # NATS (127.0.0.1) and the engine, from what setup saved
 appmod init C:\src\my-repo [--tool copilot|claude|both] [--installer winget|npm] [--with-mcp] [--yes]
 appmod doctor C:\src\my-repo        # check only
 appmod upgrade plugin                # update the app-modernization plugin
