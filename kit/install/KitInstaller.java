@@ -200,6 +200,9 @@ public class KitInstaller {
         }
         report.forEach(System.out::println);
         if (target != null && !dryRun) {
+            warnWhenOutsideSetupFolders(target);
+        }
+        if (target != null && !dryRun) {
             // Git readiness, the detected default branch and, in a terminal, the choice of source branch. Never fails the install.
             GitSetup.init(target, upgrade ? null : GitSetup.answerSource(), upgrade, System.out::println);
         }
@@ -573,6 +576,33 @@ public class KitInstaller {
                   }
                 }
                 """.formatted(m.group(1));
+    }
+
+
+    /**
+     * When {@code appmod setup} has been run, the engine only accepts reports from the folders given to it. A repository outside them gets a
+     * warning here (the kit is installed anyway); with no machine configuration nothing is said.
+     */
+    static void warnWhenOutsideSetupFolders(Path repository) {
+        try {
+            MachineConfig.Values config = MachineConfig.read(MachineConfig.file(MachineConfig.home()));
+            Path repo = realOrNormal(repository);
+            boolean inside = config.allowedRoots().stream().anyMatch(root -> repo.startsWith(realOrNormal(Path.of(root))));
+            if (!inside) {
+                System.out.println("warning: %s is outside the folders given to appmod setup (%s), so the engine will refuse reports from it. Run appmod setup again to add its folder."
+                        .formatted(repository, String.join(", ", config.allowedRoots())));
+            }
+        } catch (MachineConfig.ConfigProblem | RuntimeException _) {
+            // no usable machine configuration: setup was not run, so there is nothing to compare with
+        }
+    }
+
+    private static Path realOrNormal(Path path) {
+        try {
+            return path.toRealPath();
+        } catch (IOException _) {
+            return path.toAbsolutePath().normalize();
+        }
     }
 
     static IllegalStateException fail(String message) {

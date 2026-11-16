@@ -82,7 +82,9 @@ With `--tool claude` none of steps 2, 3, 5, 6 and 7 runs.
 
 | Command | What it does |
 |---|---|
-| `appmod init <dir> [options]` | Everything above |
+| `appmod setup [--roots a,b] [--tool copilot\|claude] [--yes] [--check] [--nats-port n] [--engine-jar path]` | **Once per machine**, for the engine: finds JDK 25 (as `init` does), finds `nats-server` or downloads the pinned one (SHA-256 checked, only over HTTPS), builds the engine, **asks for the folders of your repositories and your agent**, saves them in `%LOCALAPPDATA%\appmod\machine.properties`. See [engine/docs/setup.md](../../engine/docs/setup.md) |
+| `appmod start [--nats\|--engine]` | NATS (on `127.0.0.1` only; an answering one is reused) in the background and the engine in this terminal, from the saved configuration; `--nats` or `--engine` start just one |
+| `appmod init <dir> [options]` | Everything above, for one repository (it warns when the repository is outside the folders given to `setup`) |
 | `appmod doctor [<dir>]` | The same checks, **changes nothing**; exit code 1 if something is missing |
 | `appmod plugin status` · `install` · `upgrade` | Only the app-modernization plugin |
 | `appmod upgrade [plugin]` | Refresh the marketplace catalog, update the plugin, report "updated from vX to vY" or "already at latest" |

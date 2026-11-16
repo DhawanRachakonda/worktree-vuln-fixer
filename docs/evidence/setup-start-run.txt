@@ -1,0 +1,48 @@
+Real run of appmod setup and appmod start, 2026-11-16, Windows 11, JDK 26 (Zulu) found by appmod.cmd. Change: appmod-setup-and-start.
+What is real: appmod.cmd setup (the real download of nats-server v2.10.29 from github.com with its SHA-256 checked, a real gradlew bootJar), appmod.cmd start (the real nats-server, the real engine jar), a message with a source-branch header over the plain NATS protocol, a real git repository, the engine's read API.
+What is not: the engine build was UP TO DATE (a jar from an earlier build existed, so Gradle had nothing to recompile); the coding agent was a stand-in program that commits one file (SUBSCRIBER_CLAUDE_COMMAND=standin-agent, SUBSCRIBER_RUNNER=headless); the engine ran without a console (its input was not a terminal), so the console commands were not typed; the user PATH was left alone (--no-persist); APPMOD_HOME was a temporary folder, not %LOCALAPPDATA%\appmod.
+Machine-specific folders below are in a temporary scratch folder.
+
+## $ appmod setup --roots <folder of the sample repository> --tool claude --yes --no-persist
+
+ AppMod setup  -  prepares this machine for the engine (once per machine)
+
+== JDK 25+ (KitInstaller, the kit tools, the validators and the engine)
+   [OK]   JDK 26.0.1 at C:\Program Files\Zulu\zulu-26
+JDK:         C:\Program Files\Zulu\zulu-26
+Downloading https://github.com/nats-io/nats-server/releases/download/v2.10.29/nats-server-v2.10.29-windows-amd64.zip
+nats-server: C:\Users\Dhawan\AppData\Local\Temp\claude\e7bb96d3286397be\9e81cfa6-ba6b-4ed4-bb6d-2ac2913f2add\scratchpad\real-run\appmod-home\tools\nats-server-v2.10.29\nats-server.exe (downloaded, SHA-256 verified)
+Building the engine (gradlew bootJar, JAVA_HOME=C:\Program Files\Zulu\zulu-26) ...
+engine:      C:\Projects\worktree-vuln-fixer\engine\build\libs\subscriber-engine-0.1.0-SNAPSHOT.jar (built)
+Saved C:\Users\Dhawan\AppData\Local\Temp\claude\e7bb96d3286397be\9e81cfa6-ba6b-4ed4-bb6d-2ac2913f2add\scratchpad\real-run\appmod-home\machine.properties
+  folders: C:\Users\Dhawan\AppData\Local\Temp\claude\e7bb96d3286397be\9e81cfa6-ba6b-4ed4-bb6d-2ac2913f2add\scratchpad\media\work
+  agent:   claude
+  NATS:    C:\Users\Dhawan\AppData\Local\Temp\claude\e7bb96d3286397be\9e81cfa6-ba6b-4ed4-bb6d-2ac2913f2add\scratchpad\real-run\appmod-home\tools\nats-server-v2.10.29\nats-server.exe (port 4222, loopback only)
+  engine:  C:\Projects\worktree-vuln-fixer\engine\build\libs\subscriber-engine-0.1.0-SNAPSHOT.jar
+Next: appmod init <repository> for each repository, then appmod start.
+Folder for your PATH (appmod.cmd offers to add it): C:\Users\Dhawan\AppData\Local\Temp\claude\e7bb96d3286397be\9e81cfa6-ba6b-4ed4-bb6d-2ac2913f2add\scratchpad\real-run\appmod-home\tools\nats-server-v2.10.29
+   [..]   Portable tools were not added to your user PATH (--no-persist). They are in C:\Users\Dhawan\AppData\Local\Temp\claude\e7bb96d3286397be\9e81cfa6-ba6b-4ed4-bb6d-2ac2913f2add\scratchpad\real-run\appmod-home\tools
+setup-exit=0
+
+## $ appmod start   (output of the command; the engine's log lines are shortened)
+NATS started on 127.0.0.1:4222 (log: C:\Users\Dhawan\AppData\Local\Temp\claude\e7bb96d3286397be\9e81cfa6-ba6b-4ed4-bb6d-2ac2913f2add\scratchpad\real-run\appmod-home\run\nats.log)
+Starting the engine (folders: C:\Users\Dhawan\AppData\Local\Temp\claude\e7bb96d3286397be\9e81cfa6-ba6b-4ed4-bb6d-2ac2913f2add\scratchpad\media\work, agent: claude). Its console is this terminal; type 
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+  [engine log lines omitted]
+
+## netstat while it ran: NATS listens on the loopback address only, and the engine is connected
+  TCP    127.0.0.1:4222         0.0.0.0:0              LISTENING
+  TCP    127.0.0.1:4222         127.0.0.1:<engine port>   ESTABLISHED
+
+## a message with the header source-branch: develop, published with the plain NATS protocol (HPUB)
+server said: INFO {"server_id":"NBWZQROEMJIGTDYU27TDZ ... / answer: PONG
+
+## GET /api/sessions (fields of the session, 45 seconds later)
+"state":"DONE" "outcome":"succeeded" "workBranch":"appmod/fix-08f256f8" "baseCommit":"35c2ab5f68847035192eec0a4eb1d5c69244b56c" "fixCommits":1 "sourceBranch":"develop" "sourceChoice":"publish" "publishState":"none"
+(35c2ab5 is the tip of develop in that repository)
+
+## the engine was ended (stopped by force, from outside)
+nats-server processes afterwards: 0; port 4222 listening: False; run\nats.pid present: no; nats.log ends with: Listening for client connections on 127.0.0.1:4222 / Server is ready
+appmod start returned the engine's exit status (127 here, because the engine was killed).

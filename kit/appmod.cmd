@@ -47,6 +47,9 @@ if /i "%COMMAND%"=="/?" goto :help
 if /i "%COMMAND%"=="help" goto :help
 if /i "%COMMAND%"=="--version" goto :cmd_version
 if /i "%COMMAND%"=="version" goto :cmd_version
+rem setup and start take their own options (--roots, --nats ...), so they are handed on before the option parser below sees them
+if /i "%COMMAND%"=="setup" goto :cmd_setup
+if /i "%COMMAND%"=="start" goto :cmd_start
 shift
 
 set "POS1="
@@ -113,6 +116,10 @@ echo.
 echo  appmod %SCRIPT_VERSION% - AppMod kit setup for Windows (GitHub Copilot app modernization underneath)
 echo.
 echo  USAGE
+echo    appmod setup [--roots a,b] [--tool copilot^|claude] [--yes] [--check]
+echo                                                Once per machine: JDK, nats-server (downloaded, SHA-256 checked, only if missing),
+echo                                                the engine program, and the folders of your repositories and your agent
+echo    appmod start [--nats^|--engine]              Start NATS and the engine (both by default; NATS only on 127.0.0.1)
 echo    appmod init ^<working-directory^> [options]   Prepare this machine and install the kit into a repository
 echo    appmod doctor [^<working-directory^>]         Check everything, change nothing (exit code 1 if something is missing)
 echo    appmod upgrade [plugin^|copilot^|node^|all]    Upgrade components (default: plugin)
@@ -289,6 +296,52 @@ if errorlevel 1 exit /b 2
 call :ensure_java
 call :install_kit
 goto :finish
+
+
+rem ------------------------------------------------------------------------------------------
+rem  appmod setup: once per machine (JDK, nats-server, the engine program, the folders and the tool). The work is install\AppmodSetup.java.
+:cmd_setup
+set "REST="
+for /f "tokens=1,*" %%a in ("%*") do set "REST=%%b"
+if defined REST (
+    if not "%REST:--yes=%"=="%REST%" set "YES=1"
+    if not "%REST:--persist-path=%"=="%REST%" (set "PERSIST=Y" & set "REST=%REST:--persist-path=%")
+    if not "%REST:--no-persist=%"=="%REST%" (set "PERSIST=N" & set "REST=%REST:--no-persist=%")
+)
+echo.
+echo  AppMod setup  -  prepares this machine for the engine (once per machine)
+call :ensure_java
+if not defined JAVA_EXE (
+    echo  A JDK %APPMOD_JAVA_MAJOR% or later is needed first; see the message above.
+    exit /b 1
+)
+set "_pafile=%WORK%\path-additions.txt"
+if exist "%_pafile%" del /q "%_pafile%" >nul 2>nul
+pushd "%KIT_DIR%"
+call "%JAVA_EXE%" install\AppmodSetup.java --java-home "%JAVA_DIR%" --kit-dir "%KIT_DIR:~0,-1%" --path-additions-file "%_pafile%" %REST%
+set "_rc=%errorlevel%"
+popd
+if not "%_rc%"=="0" exit /b %_rc%
+if exist "%_pafile%" set /p _more=<"%_pafile%"
+if defined _more set "PATH_ADDITIONS=%PATH_ADDITIONS%%_more%"
+call :persist_paths
+exit /b 0
+
+rem ------------------------------------------------------------------------------------------
+rem  appmod start [--nats|--engine]: runs NATS and the engine from the saved configuration. The work is install\AppmodStart.java.
+:cmd_start
+set "REST="
+for /f "tokens=1,*" %%a in ("%*") do set "REST=%%b"
+call :find_java
+if not defined JAVA_EXE (
+    echo  No JDK %APPMOD_JAVA_MAJOR% or later found. Run: appmod setup
+    exit /b 1
+)
+pushd "%KIT_DIR%"
+call "%JAVA_EXE%" install\AppmodStart.java %REST%
+set "_rc=%errorlevel%"
+popd
+exit /b %_rc%
 
 rem ------------------------------------------------------------------------------------------
 :finish

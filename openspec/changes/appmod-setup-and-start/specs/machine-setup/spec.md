@@ -58,7 +58,7 @@ takes them), the tool and the engine's data folder, and no secret. It SHALL be w
 - **THEN** the configuration file is either the earlier complete one or absent, never half written
 
 ### Requirement: A download is pinned, verified and extracted safely
-The system SHALL download `nats-server` only over HTTPS, only a version that is pinned together with the SHA-256 of its release archive, and
+The system SHALL download `nats-server` only over HTTPS (a loopback address may use plain HTTP, which is how the tests serve a stand-in release), only a version that is pinned together with the SHA-256 of its release archive, and
 SHALL compare the hash of the downloaded archive before extracting anything. A version without a pinned hash SHALL be refused. A hash that
 does not match SHALL delete the download, extract nothing and stop with both hashes shown. Extraction SHALL refuse an archive entry whose
 path leaves the target folder, SHALL take only the `nats-server` program, and SHALL delete the archive afterwards. The download SHALL show the
