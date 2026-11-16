@@ -450,6 +450,10 @@ public final class SetupStartTests {
         builder.environment().remove("APPMOD_NATS_VERSION");
         builder.environment().remove("APPMOD_NATS_SHA256");
         builder.environment().remove("APPMOD_NATS_BASE_URL");
+        // a variable given by the test replaces every variable of that name whatever its case (a Windows environment can hold Path and PATH)
+        for (String key : env.keySet()) {
+            builder.environment().keySet().removeIf(existing -> existing.equalsIgnoreCase(key));
+        }
         builder.environment().putAll(env);
         Process p = builder.start();
         if (!p.waitFor(150, TimeUnit.SECONDS)) {

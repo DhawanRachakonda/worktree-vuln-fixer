@@ -368,8 +368,15 @@ public final class AppmodSetup {
     }
 
     static String onPath(String program) {
-        String path = System.getenv("PATH");
-        if (path == null) {
+        // every variable named PATH, whatever its case: a Windows environment can hold both Path and PATH
+        StringBuilder all = new StringBuilder();
+        for (Map.Entry<String, String> variable : System.getenv().entrySet()) {
+            if (variable.getKey().equalsIgnoreCase("PATH") && variable.getValue() != null) {
+                all.append(variable.getValue()).append(File.pathSeparator);
+            }
+        }
+        String path = all.toString();
+        if (path.isEmpty()) {
             return null;
         }
         for (String directory : path.split(File.pathSeparator)) {
