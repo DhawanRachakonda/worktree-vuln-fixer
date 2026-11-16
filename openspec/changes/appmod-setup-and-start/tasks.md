@@ -44,7 +44,7 @@ Tests need no internet and no Docker (a stand-in release server and a stand-in `
 
 ## 8. Post and videos (the rules of `AGENTS.md`; videos are not re-recorded for this change)
 
-- [ ] 8.1 Update the published post `C:/Projects/alumnx-ai-labs-training/dhawanrachakonda.github.io/posts/scanner-report-to-fix-branch.md` and `docs/social-posts.md` for `setup` and `start` (the "start NATS yourself" wording, the quick start, the Not proven list), copying the new log to the post's `posts/evidence/`, following that repository's AGENTS.md and its reviewer gate, without committing or pushing there; verify with the reviewer's verdict and that every number cites a log
+- [x] 8.1 Update the published post `C:/Projects/alumnx-ai-labs-training/dhawanrachakonda.github.io/posts/scanner-report-to-fix-branch.md` and `docs/social-posts.md` for `setup` and `start` (the "start NATS yourself" wording, the quick start, the Not proven list), copying the new log to the post's `posts/evidence/`, following that repository's AGENTS.md and its reviewer gate, without committing or pushing there; verify with the reviewer's verdict and that every number cites a log **Done:** a bullet on setup and start was added to the post with the real run and the gate log, approved by the posts repository's reviewer and pushed on 2026-11-16
 - [x] 8.2 No new video: the author decided that videos are re-recorded only when the execution flow changes drastically (AGENTS.md, rule 4); check that `docs/media/README.md` does not contradict the new commands and say in the final message that the videos were left alone; verify with `grep` that no doc claims a video shows `setup` or `start`
 
 ## 9. Final check
